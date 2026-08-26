@@ -1,15 +1,14 @@
-# Ritual plugin (ChatGPT + Codex)
+# Ritual — plugin bundle
 
-Bundle: the ritual-explore skill + the Ritual MCP connector mapping.
+Ritual turns a rough idea into a sharp problem statement, targeted discovery
+questions you pick from, and explainable build-ready recommendations — the
+context a coding agent cannot infer on its own.
 
-- `.codex-plugin/plugin.json` — plugin manifest (skills + app compatibility).
-- `.app.json` — maps this plugin to the registered ChatGPT app. NOTE: in dev
-  the `plugin_asdk_app_…` id changes on every connector delete/re-add; update
-  it after each re-add. In production this becomes the published app's stable id.
-- `skills/ritual-explore/` — synced from `extraction/skills/ritual-explore/`
-  (that copy is the source of truth; re-copy after skill edits).
+This directory is the installable plugin:
 
-Install locally: ChatGPT desktop → Plugins → Add plugin marketplace →
-Source: this repo (`ritual-work/chatgpt-plugin`) or the local folder path,
-Git ref `main`, Sparse paths empty. Or from Codex CLI:
-`codex plugin marketplace add ritual-work/chatgpt-plugin`.
+- `.codex-plugin/plugin.json` — the plugin manifest (name, version, skills).
+- `.app.json` — attaches the plugin to the Ritual app in ChatGPT.
+- `skills/ritual/` — the `build` skill: the full planning flow, from framing
+  through discovery, recommendations, and a validated build brief.
+
+See the repository root README for installation.
