@@ -1,0 +1,40 @@
+{
+  "name": "ritual",
+  "version": "0.1.0",
+  "description": "Frame real work before you build it: Ritual turns a rough idea into a sharp problem statement, targeted discovery questions you pick from, and explainable build-ready recommendations.",
+  "author": {
+    "name": "Ritual",
+    "url": "https://ritual.work"
+  },
+  "homepage": "https://ritual.work",
+  "license": "Proprietary",
+  "keywords": [
+    "planning",
+    "discovery",
+    "build brief",
+    "recommendations",
+    "requirements",
+    "product",
+    "engineering"
+  ],
+  "skills": "./skills/",
+  "apps": "./.app.json",
+  "interface": {
+    "displayName": "Ritual",
+    "shortDescription": "Frame real work before you build it",
+    "longDescription": "Ritual turns a rough idea into a sharp problem statement, targeted discovery questions you pick from, and explainable build-ready recommendations — the context a coding agent cannot infer on its own.",
+    "developerName": "Ritual",
+    "category": "Productivity",
+    "capabilities": ["Interactive", "Write"],
+    "websiteURL": "https://ritual.work",
+    "brandColor": "#1FAF9F",
+    "logo": "./assets/logo.svg",
+    "composerIcon": "./assets/logo.svg",
+    "defaultPrompt": [
+      "Help me plan a feature before I build it",
+      "Frame the problem behind this refactor",
+      "What context am I missing before I start?"
+    ],
+    "screenshots": []
+  }
+}
