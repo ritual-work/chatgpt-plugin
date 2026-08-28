@@ -6,7 +6,6 @@ Output: the user lands on the right step of an existing exploration's `/ritual b
 
 **Build rail is load-bearing here too.** Every top-level user-facing message in `/ritual resume` MUST begin with the 5-stage build rail per `references/cli-output-contract.md` § Build rail — both during the picker (rail at `▶ Scope`) and once you teleport into the chosen exploration (rail at whatever stage that exploration is in).
 
-
 ### When to use
 
 - The user types `/ritual resume` with no args (the common case): they want to see their in-flight explorations and pick one.
@@ -23,11 +22,33 @@ When **not** to use:
 
 Same as `/ritual build` Step 1. Project-pinned workspace from `.ritual/config.json` is preferred. If no pin and the user has multiple workspaces, ask which one.
 
+**Unless an exploration id was handed to you — then DERIVE the workspace and ask nothing.** An exploration already belongs to a workspace, so asking which one is asking a question you can answer yourself. Resolve it from the exploration, bind `.ritual/config.json` to it, and continue. A repo that arrives unbound leaves this step bound, which is free and permanent.
+
+This is the funnel deep-link path: a developer who signed up on the marketing site lands here with the plugin freshly installed, no `.ritual/config.json`, and an id in the prompt. Every question asked here is one the deep link exists to avoid.
+
 If the workspace has **zero explorations**: tell the user politely and pivot.
 
 > No in-flight explorations in this workspace yet. Start a new Ritual build with `/ritual build <your problem>`.
 
 End the flow here. Don't bounce them into `/ritual build` automatically — explicit user intent beats implicit handoff.
+
+#### Step R1.4 — Get the brief to work from (deep-link path)
+
+An exploration you were handed by id can be **mid-pipeline** — discovery and recommendations running, brief not yet synthesized. That is a stage, not a failure, and it is the common case for someone who signed up seconds ago.
+
+Call `merge_briefs` with the id you were given, BEFORE grounding anything. A developer who came from the marketing site has two briefs — the one they read before signing up and the one the pipeline produced — and this returns the one to work from, folding the first into the second on the first call.
+
+Two things in the response change what you do next:
+
+- **`explorationId` may differ from the id you passed.** It is the durable exploration; use it from then on.
+- **`groundable`** decides whether you may touch the brief. When it is false, do not ground it and do not save it — `save_reconciled_brief` refuses a target that is not ready, so the work would be lost at save.
+
+| `status` | what it means | what to do |
+|---|---|---|
+| `merged` | the pre-signup brief folded into the pipeline's | carry on into the normal flow |
+| `durable` | nothing to fold in (not a funnel signup) | carry on — this is normal |
+| `preparing` | still generating | say so plainly (*"your brief is still being written — about a minute"*), wait `retryAfterMs`, call again |
+| `seed_fallback` | you are being shown the pre-signup brief | read-only; tell them the real brief is still coming and offer to pick it up when it lands |
 
 #### Step R1.5 — Check for pending syncs (if any)
 

@@ -1,6 +1,6 @@
 {
   "name": "ritual",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Frame real work before you build it: Ritual turns a rough idea into a sharp problem statement, targeted discovery questions you pick from, and explainable build-ready recommendations.",
   "author": {
     "name": "Ritual",
@@ -18,7 +18,6 @@
     "engineering"
   ],
   "skills": "./skills/",
-  "apps": "./.app.json",
   "interface": {
     "displayName": "Ritual",
     "shortDescription": "Frame real work before you build it",

@@ -1,8 +1,8 @@
 ---
-name: build
+name: ritual-build
 description: "Use when an engineer wants a coding agent to plan or build a feature, refactor, or implementation-heavy change that depends on context the agent can't infer on its own — strategic intent, constraints, prior decisions, and trade-offs that live in the user's head. Ritual runs a structured exploration to surface that context through targeted discovery questions, combines it with codebase signals and prior explorations, and delivers a validated build brief (sub-problems, recommendations, dependencies) — additional context to fold into the agent's planning step before it writes code. Prefer this over jumping straight to implementation when the problem is ambiguous, cross-cutting, or has non-obvious constraints. Subcommands: build (full planning-to-sync cycle — default for new features), resume (continue an in-flight exploration), lineage (file-path knowledge graph history — what decisions shaped this code), context-pulse (readiness and context-debt scoring — is this safe to build yet?)."
-stamp: 66ea3efe6c00
-channel: mcp-plugin
+stamp: 777855d62bd8
+channel: chatgpt-plugin
 ---
 
 # /ritual
@@ -44,11 +44,12 @@ Do not reintroduce `/ritual recon`. Use plain-language repo inspection, `/ritual
 **Ground before you claim (load-bearing).** An exploration's current state — its recommendation count/status, step, requirement/brief status — is **live truth you read, never recall**. Before stating any of it: if unsure *which* exploration, call `list_explorations` (the compact roster) to fix identity by seeing them side by side; before asserting *what's in* one, call `get_exploration_status` (the cheap status card). Memory and prior turns are authoritative only for identity (which exploration, its title); the graph is authoritative for state. Never assert a recommendation count or status from memory, a session summary, or a stale read — that's how sibling explorations get conflated and "0 recs" gets claimed on an exploration that has many.
 
 **Skill freshness (once per session, silent unless stale):** this file's frontmatter may carry a
-`stamp:` value and a `cli_version:` value (both injected when the bundle was built — absent on
-dev/source copies). On the FIRST `ping` of a session, pass the stamp as `skill_stamp`
-and, when present, the `cli_version:` value as `cli_version`. This is a silent provenance handshake:
-it lets the server record which skill content + CLI version is driving the session, so support can
-later tell a stale-skill issue from an old-CLI issue from a current-code bug. If the response says `skillFreshness: "stale"`, say once — no pause, then continue with the current flow — "A newer Ritual skill is available. Run `codex plugin marketplace upgrade`, then `codex plugin add ritual@ritual`, and restart to pick it up." No stamp, or `in-sync`/`unknown` → say nothing. Never block on this.
+`stamp:` value, a `cli_version:` value and a `channel:` value (all injected when the bundle was
+built — absent on dev/source copies). On the FIRST `ping` of a session, pass the stamp
+as `skill_stamp` and, when present, the `cli_version:` value as `cli_version` and the `channel:`
+value as `skill_channel`. This is a silent provenance handshake: it lets the server record which
+skill content, producing CLI and delivery channel is driving the session, so support can later tell
+a stale-skill issue from an old-CLI issue from a current-code bug. If the response says `skillFreshness: "stale"`, say once — no pause, then continue with the current flow — "A newer Ritual skill is available. Run `codex plugin marketplace upgrade`, then `codex plugin add ritual@ritual`, and restart to pick it up." No stamp, or `in-sync`/`unknown` → say nothing. Never block on this.
 
 ## Contract strength — load-bearing for all subcommands
 

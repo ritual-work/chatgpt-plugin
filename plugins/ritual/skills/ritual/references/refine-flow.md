@@ -17,6 +17,17 @@ brief (the prelogin handoff) and a repo. Refine's job is to sharpen that brief a
 current codebase: "I have a plan built from my description, now ground it in where the code
 actually is." Its output is a refined `.ritual/build-brief.md` that `/ritual begin` executes.
 
+## Step 0 — Is there anything to refine? (deep-link guard)
+
+Refine grounds a brief **you already have**, and the paragraph above says where it came from: `init` pulled it. The plugin path never runs `init` — a developer arriving from the marketing deep link has a freshly installed plugin, no `.ritual/config.json`, and no `.ritual/build-brief.md`.
+
+So before anything else:
+
+- **No `.ritual/build-brief.md` and no bound workspace?** This is a session that was never established. Do NOT attempt to refine, and do NOT synthesize a brief to have something to grind against. Hand off to `/ritual resume <exploration_id>` if you were given an id, or `/ritual resume` if you were not — that flow resolves the workspace, binds the repo, and lands on the right stage, including the stage where the brief is still generating.
+- **Brief present?** Continue with Step 1 below; nothing changes.
+
+This guard is the belt to the deep-link prompt's braces: the prompt says `resume`, but an agent that reasons its way to `refine` anyway should land somewhere that works rather than failing on a missing file.
+
 **Build rail is load-bearing here too.** Every top-level user-facing message in `/ritual refine`
 MUST begin with the 5-stage build rail per `references/cli-output-contract.md` § Build rail,
 positioned at the recommendations/brief stage — re-grounding is late-planning, not implementation.
