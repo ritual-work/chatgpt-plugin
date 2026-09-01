@@ -4,6 +4,11 @@ You were handed an install prompt by a person who just created their first
 Ritual exploration. These notes cover connecting, sign-in and its edge cases,
 and how to talk to that person. Follow them; do not read them aloud.
 
+> **Reading along as a human?** This file is the playbook your coding agent
+> follows while setting Ritual up — published here so you can see exactly
+> what it will do and why before it does it. The technical terms the agent
+> is told not to say out loud are explained at the bottom, with references.
+
 ## How to talk to the person
 
 - Plain language, brief. Announce actions by their outcome: "Connecting
@@ -50,3 +55,27 @@ sign-in and another restart.
 Tell them to restart the ChatGPT app (the plugin and the connection both load
 at startup), and give them the resume command from their prompt to run after
 the restart.
+
+## References — for the curious
+
+The agent is told to keep these out of its narration; they are documented
+here instead.
+
+- **`--oauth-client-registration cimd`** — CIMD is *Client ID Metadata
+  Documents*: instead of registering a throwaway OAuth client per user, the
+  Codex CLI identifies itself with a client document hosted at a stable
+  `chatgpt.com` URL, which Ritual's authorization server recognises and
+  trusts. Spec: the IETF draft
+  [draft-ietf-oauth-client-id-metadata-document](https://datatracker.ietf.org/doc/draft-ietf-oauth-client-id-metadata-document/);
+  see also `codex mcp add --help` in OpenAI's Codex CLI docs.
+- **The scopes** (`openid, profile, email, offline_access`) — the first three
+  are standard OpenID Connect identity claims (who you are, so Ritual can
+  attach the exploration to your account). `offline_access` asks for a
+  refresh token, so the connection can renew itself instead of expiring
+  mid-session.
+- **The sign-in that "may open and close by itself"** — the corrective login
+  reuses the browser session and consent you granted moments earlier, so the
+  authorization completes with no input. It is the same sign-in finishing,
+  not a second one.
+- **Why a restart** — the ChatGPT app loads plugins and MCP connections at
+  startup; a connection added mid-session becomes visible on the next launch.
