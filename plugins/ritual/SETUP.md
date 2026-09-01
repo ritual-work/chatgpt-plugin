@@ -30,25 +30,35 @@ Running it may open their browser to sign in. Wait for them to finish and
 for the command to return. Never start a second browser sign-in while one
 is open — one at a time, always.
 
-## Verify before the restart
+## Verify before the restart — bounded, never a loop
 
 Run `codex mcp list` and read ritual's Auth column.
 
-- `OAuth` → they are signed in. Continue.
-- Anything else (`Not logged in`, `Unknown`, blank) → the sign-in did not
-  stick, whatever the connect command reported. Tell them: "Finishing the
-  sign-in — a browser tab may open and close by itself; you shouldn't need
-  to enter anything." Then run:
+- `OAuth` → signed in. Continue to Finishing.
+- Anything else (`Unknown`, `Not logged in`, blank): run ONE corrective
+  pass. Tell them first: "Finishing the sign-in — a browser tab may open
+  and close by itself; you shouldn't need to enter anything." Then:
 
       codex mcp logout ritual
       codex mcp login ritual --oauth-client-registration cimd --scopes openid,profile,email,offline_access
 
   If the browser does ask them to sign in, wait for them to finish and for
-  the command to return. Then re-check the column.
+  the command to return.
 
-Do this BEFORE telling them to restart — a restart with a stuck sign-in
-strands them in a session with no Ritual tools and no way out but another
-sign-in and another restart.
+**Then continue to Finishing regardless of what the column says now.**
+When you run commands inside the ChatGPT app, the credential store is not
+always readable from your sandbox — the column can report `Unknown` while
+the sign-in is in fact stored and valid (verified 2026-08-31: the same
+`codex mcp list`, run in the user's own terminal at the same moment, said
+`OAuth`). The column is a hint here, not the truth. The truth is whether
+Ritual's tools are present after the restart.
+
+Never run the corrective pass more than once before a restart, and never
+tell the person the sign-in failed based on the column alone — "sign-in
+completed" from the login command is the better signal. If, after the
+restart, Ritual's tools are genuinely absent, run one more corrective pass
+and one more restart; if that still fails, stop and tell them what you
+observed.
 
 ## Finishing
 
