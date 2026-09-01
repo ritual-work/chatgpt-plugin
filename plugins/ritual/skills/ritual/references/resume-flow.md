@@ -50,6 +50,19 @@ Two things in the response change what you do next:
 | `preparing` | still generating | say so plainly (*"your brief is still being written — about a minute"*), wait `retryAfterMs`, call again |
 | `seed_fallback` | you are being shown the pre-signup brief | read-only; tell them the real brief is still coming and offer to pick it up when it lands |
 
+**The merge outranks any status you read before it (load-bearing).** Once `merge_briefs`
+returns `merged` or `durable` with `groundable: true`, that IS the resume outcome: present the
+brief and continue toward grounding. Do **not** surface a pipeline gate — recommendations review,
+question review, any step prompt — from a status snapshot taken before the merge returned. A
+`preparing` retry means you necessarily read status while the pipeline was still moving, so by the
+time the merge lands your earlier snapshot is stale by construction. If the flow needs the step
+after that, re-read it *after* the brief has been presented.
+
+This matters most on the path it is most likely to happen: a funnel resume that lands mid-pipeline.
+The seed pipeline auto-proceeds past recommendations, so a recommendations gate shown from a
+pre-merge snapshot is asking the user to accept work the pipeline already moved past — they reply
+"proceed" to a gate that was never theirs to answer.
+
 #### Step R1.5 — Check for pending syncs (if any)
 
 Before showing the in-flight exploration list, glance at `.ritual/pending-sync/` to surface any `sync_implementation` calls that failed in past sessions. These are the cleanest "you left something undone" signal — more concrete than an exploration's state badge alone.

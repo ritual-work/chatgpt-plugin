@@ -105,6 +105,32 @@ called out because they're the ones agents reach for:
 - **Markdown code-fence delimiters as content** — do not wrap a gate in a ```` ```text ````
  fence; render the gate content directly.
 
+### Tool-result vocabulary is internal too (load-bearing)
+
+**Field names, status enums, version counters and flags from a tool result are for
+YOU. Translate before narrating — never pass them through.** The fields stay precise
+because you need them precise; that precision is exactly what makes them wrong in
+user-facing prose. "Your build brief v2, groundable" tells a developer nothing they
+can act on, and reads as though the product is talking to itself.
+
+This is the same leak class as CLI flags and command output, arriving by a third
+route — so the `Internals` bullet above covers it in principle, and it still leaked
+three times. Hence the table:
+
+| tool result | what the user hears |
+|---|---|
+| `merged` | "your build brief is ready — it folds in the brief you read on the site" |
+| `durable` | "your build brief is ready" |
+| `preparing` | "your brief is still being written — about a minute" |
+| `seed_fallback` | "showing the brief from the site while the full one finishes" |
+| `version: N` | nothing, or "updated" |
+| `groundable` | nothing — it gates YOUR behaviour, not their understanding |
+| step enums (`COMPLETE`, `IN_PROGRESS`) | plain words: "discovery is finishing", never "step COMPLETE" |
+| counts of internal objects (`7 matters`) | plain words, or nothing |
+
+Exploration ids stay verbatim inside a COMMAND the user runs (`ritual resume <id>`) —
+this rule is about prose, not about arguments they need to type.
+
 ### Tool-call labels are user-visible too (load-bearing, both phases)
 
 Agent UIs surface the **description / label you attach to a tool call** — Claude
