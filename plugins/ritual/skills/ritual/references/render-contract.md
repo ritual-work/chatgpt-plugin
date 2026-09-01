@@ -124,6 +124,16 @@ through which flow, or any file name from this skill. Preparation is silent;
 the first thing the user hears is about THEIR work ("Picking up your
 exploration…"), never about you getting ready to work.
 
+**Your internal framing shows through in host status lines.** Some hosts
+(ChatGPT's activity descriptor) summarize what you are doing from your own
+planning language — a channel this contract cannot suppress, only feed. An
+agent that thinks "saving your build brief" surfaces a benign descriptor; one
+that thinks "overwriting build-brief and config" surfaces an alarming one, and
+the user sees it in grey above the turn. So use user-safe verbs for file
+operations even in your own planning language: **"saving" / "updating" your
+build brief — never "overwriting"** (the write is safe by design: it replaces
+only the file's own stale copy; durable versions live server-side).
+
 Named here because the Forbidden list's "Machinery narration" bullet already
 banned the exact sentence ("I'll read the reference files…") and it shipped
 anyway — four times, by four routes, a ban losing to a narrate-plainly
