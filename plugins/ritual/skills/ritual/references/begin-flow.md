@@ -20,12 +20,11 @@ When **not** to use:
 - The user wants to continue an in-flight exploration mid-planning -> that is `/ritual resume`.
 - The user wants to re-run discovery or refine recommendations -> `/ritual refine`.
 
-
 ### Workflow
 
 #### Step B1 — Resolve the exploration (same binding as resume/refine)
 
-`begin` resolves the exploration via the SAME repo+branch binding used by `/ritual resume` and `/ritual refine`. The brief can come from EITHER source: the server exploration (a normal `/ritual build`), OR a local `.ritual/build-brief.md` standing on its own (a refined prelogin brief, grounded on disk and never synthesized server-side). `begin` still resolves the exploration id — it is needed for `sync_implementation` at the end — but it does NOT require a core server build brief. A brief on disk is a first-class, executable artifact.
+`begin` resolves the exploration via the SAME repo+branch binding used by `/ritual resume` and `/ritual refine`. The brief can come from EITHER source: the server exploration (a normal `/ritual build`), OR a local per-exploration brief (`.ritual/local/build-briefs/{exploration_id}/BUILD-BRIEF.md`) standing on its own (a refined prelogin brief, grounded on disk and never synthesized server-side). `begin` still resolves the exploration id — it is needed for `sync_implementation` at the end — but it does NOT require a core server build brief. A brief on disk is a first-class, executable artifact.
 
 **Resolution order:**
 
@@ -39,10 +38,12 @@ When **not** to use:
 
 **Read live state before asserting anything (load-bearing — grounding policy).** A brief satisfies this gate from EITHER source — check both, in this order:
 
-1. **Local brief on disk.** Read `.ritual/build-brief.md`. If it exists with real content (not the `_Build brief not available yet._` placeholder), that IS an executable brief — proceed to Step B3. This is the prelogin path: `/ritual refine` grounded the marketing-site brief on disk WITHOUT calling the core `generate_build_brief`, so there is no server build-brief row, and that is expected. Do not block on the server when a real brief is already on disk.
+1. **Local brief on disk.** Read `.ritual/local/build-briefs/{exploration_id}/BUILD-BRIEF.md` (the exploration was resolved in B1, so the id is known). **Legacy migration, one-time and silent:** if that file is absent but the flat `.ritual/build-brief.md` exists with real content (not the `_Build brief not available yet._` placeholder), move it into the per-exploration directory first — create the directory, ensure `.ritual/local/` is gitignored per build-flow Step 10c — then read it from there. The flat path predates the per-exploration restructure; it is not gitignored and can collide across explorations, so nothing reads or writes it beyond this migration.
+
+ A real brief at the per-exploration path IS an executable brief — proceed to Step B3. This is the prelogin path: `/ritual refine` grounded the marketing-site brief on disk WITHOUT calling the core `generate_build_brief`, so there is no server build-brief row, and that is expected. Do not block on the server when a real brief is already on disk.
 2. **Server brief.** If there is no usable local brief, call `get_exploration_status`. If it shows an accepted/ready build brief, that satisfies the gate too (the normal `/ritual build` path) — proceed to Step B3.
 
-`begin` does NOT require a core server build brief; a local `.ritual/build-brief.md` stands on its own.
+`begin` does NOT require a core server build brief; a local `.ritual/local/build-briefs/{exploration_id}/BUILD-BRIEF.md` stands on its own.
 
 Only if NEITHER a local brief nor a server brief exists (the exploration is still in planning, discovery, or requirements): stop and guide the user.
 

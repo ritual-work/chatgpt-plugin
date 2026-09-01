@@ -5,8 +5,17 @@ recon, drops already-implemented recommendations, attaches codebase sources, rew
 on disk, syncs it back to the cloud (non-blocking), then renders ONE grounded-and-saved summary
 with a concrete "what changed" block and the agent debrief.
 
-**The local `.ritual/build-brief.md` is the artifact refine grounds.** The brief already exists:
-it was generated on the marketing site and pulled to `.ritual/build-brief.md` at `init`. Refine
+**The local brief is the artifact refine grounds, and its canonical home is
+`.ritual/local/build-briefs/{exploration_id}/BUILD-BRIEF.md`** — the same per-exploration
+directory every other flow uses (build-flow Step 10c owns the convention, including the
+`.ritual/local/` gitignore rule). The brief already exists: it was generated on the marketing
+site and pulled to disk at `init`. **Legacy inits wrote it to the flat `.ritual/build-brief.md`
+— that path sits OUTSIDE `.ritual/local/` and is therefore NOT gitignored, and it can collide
+across explorations. On first touch after resolving the exploration (Step 1), silently migrate:
+if `.ritual/build-brief.md` exists with real content and the per-exploration file does not,
+move it into the id directory (create it, ensure `.ritual/local/` is gitignored per build-flow
+10c) and say nothing.** From then on every read and write in this flow uses the per-exploration
+path. Refine
 does NOT call `generate_build_brief` and does NOT re-synthesize on the server; it sharpens the
 brief you already have, in place, against real code. It may then sync the grounded result back
 with `save_reconciled_brief` (a save, not a re-synthesis; non-blocking — Step 5.5), but the local
@@ -15,15 +24,15 @@ file stays the source of truth for `/ritual begin`.
 **Refine = grounding a brief you already have.** By the time refine runs, you arrived with a
 brief (the prelogin handoff) and a repo. Refine's job is to sharpen that brief against the
 current codebase: "I have a plan built from my description, now ground it in where the code
-actually is." Its output is a refined `.ritual/build-brief.md` that `/ritual begin` executes.
+actually is." Its output is a refined per-exploration brief that `/ritual begin` executes.
 
 ## Step 0 — Is there anything to refine? (deep-link guard)
 
-Refine grounds a brief **you already have**, and the paragraph above says where it came from: `init` pulled it. The plugin path never runs `init` — a developer arriving from the marketing deep link has a freshly installed plugin, no `.ritual/config.json`, and no `.ritual/build-brief.md`.
+Refine grounds a brief **you already have**, and the paragraph above says where it came from: `init` pulled it. The plugin path never runs `init` — a developer arriving from the marketing deep link has a freshly installed plugin, no `.ritual/config.json`, and no local brief in either location.
 
 So before anything else:
 
-- **No `.ritual/build-brief.md` and no bound workspace?** This is a session that was never established. Do NOT attempt to refine, and do NOT synthesize a brief to have something to grind against. Hand off to `/ritual resume <exploration_id>` if you were given an id, or `/ritual resume` if you were not — that flow resolves the workspace, binds the repo, and lands on the right stage, including the stage where the brief is still generating.
+- **No local brief (nothing under `.ritual/local/build-briefs/` and no legacy `.ritual/build-brief.md`) and no bound workspace?** This is a session that was never established. Do NOT attempt to refine, and do NOT synthesize a brief to have something to grind against. Hand off to `/ritual resume <exploration_id>` if you were given an id, or `/ritual resume` if you were not — that flow resolves the workspace, binds the repo, and lands on the right stage, including the stage where the brief is still generating.
 - **Brief present?** Continue with Step 1 below; nothing changes.
 
 This guard is the belt to the deep-link prompt's braces: the prompt says `resume`, but an agent that reasons its way to `refine` anyway should land somewhere that works rather than failing on a missing file.
@@ -46,7 +55,7 @@ never process narration. Concretely:
  permission before it runs (a "proceed?" before an action with no decision to make
  is an extra step for zero safety — do not add one).
 - **User nouns only** (cli-output-contract rules): never surface raw exploration ids, `cwd`,
- branch internals, or tool names. "your build brief" not "`.ritual/build-brief.md` grounding
+ branch internals, or tool names. "your build brief" not "`BUILD-BRIEF.md` grounding
  target"; "this repo" not "cwd (`taxonomy`)".
 - Silence is not rudeness — a long grounding pass shows ONE "grounding your brief against
  this repo…" line, not a running commentary.
@@ -63,7 +72,7 @@ step between entering the flow and "the brief is updated"):*
 >
 > ✓ Signed in · ✓ build brief loaded · ✓ repo matched ({repo short name})
 >
-> Grounded {N} of {M} requirements against `{branch}` ({C} commits since the brief was built | brief was current) and refined your brief — saved → [.ritual/build-brief.md](.ritual/build-brief.md).
+> Grounded {N} of {M} requirements against `{branch}` ({C} commits since the brief was built | brief was current) and refined your brief — saved → [BUILD-BRIEF.md](.ritual/local/build-briefs/{exploration_id}/BUILD-BRIEF.md).
 >
 > What changed:
 > {per-requirement one-liners: confirmed / sharpened / flagged, user nouns only}
@@ -139,7 +148,7 @@ gate's option line — one line, nothing else.
 
 ## ON ENTRY
 
-Your **first action** is Step 1 (resolve the exploration). Do not read `.ritual/build-brief.md`
+Your **first action** is Step 1 (resolve the exploration). Do not read the local brief
 first. Do not pause to ask clarifying questions.
 
 ---
@@ -183,7 +192,7 @@ does not list, so the pinned `explorationId` is the reliable path.
 If an exploration is resolved, note its `id`, `name`, and `state`. `/ritual begin` uses this
 id for `sync_implementation`, so surface it if found — but this is a SOFT binding.
 
-If no exploration resolves but `.ritual/build-brief.md` exists with real content, proceed
+If no exploration resolves but a local brief exists with real content (either location), proceed
 anyway: the on-disk brief is the artifact refine grounds. Only if there is NEITHER an
 exploration NOR a usable local brief:
 > No build brief found for this repo+branch. Run `ritual init --token <...>` from your signup
@@ -211,13 +220,13 @@ runs catchable.
 
 ### Step 2 — Read the brief you're grounding
 
-Read `.ritual/build-brief.md` fully (and `.ritual/recommendations.md` if it exists). This is
+Read `.ritual/local/build-briefs/{exploration_id}/BUILD-BRIEF.md` fully (and `.ritual/recommendations.md` if it exists). This is
 the artifact you will rewrite in place in Step 5, so note its section structure and the
 recommendations it lists. You reached here because Step 1 confirmed a brief exists.
 
 If the brief has an `explorationId` in frontmatter, cross-check it against the pinned id from
 Step 1. If they differ, surface a warning and ground the on-disk brief anyway:
-> Warning: local `.ritual/build-brief.md` references exploration `<local-id>` but
+> Warning: the local brief references exploration `<local-id>` but
 > `.ritual/config.json` pins `<config-id>`. Grounding the on-disk brief.
 
 ### Step 3 — Recon the codebase
@@ -249,7 +258,7 @@ For each recommendation from Step 3 review:
 
 ### Step 5 — Rewrite the brief on disk (no server call)
 
-Rewrite `.ritual/build-brief.md` in place, grounded in the recon findings. This is an
+Rewrite `.ritual/local/build-briefs/{exploration_id}/BUILD-BRIEF.md` in place, grounded in the recon findings. This is an
 agent-authored edit to the local file: refine does NOT call `generate_build_brief` and does
 NOT re-synthesize on the server. The brief you already have (the prelogin brief pulled at
 `init`) is the base; sharpen it against the code:
@@ -265,14 +274,14 @@ NOT re-synthesize on the server. The brief you already have (the prelogin brief 
  from recon. If a path is uncertain, name what to search for instead of inventing one.
 - Keep every constraint, goal, and requirement the original brief stated. Never drop substance.
 
-Write the sharpened brief back to `.ritual/build-brief.md`. That file is the source of
+Write the sharpened brief back to `.ritual/local/build-briefs/{exploration_id}/BUILD-BRIEF.md`. That file is the source of
 truth for `/ritual begin` — no `generate_build_brief`, no re-synthesis, no polling.
 
 ### Step 5.5 — Sync the grounded brief back to the cloud (non-blocking)
 
 This keeps the server's copy of the brief in step with the grounding you just did, recorded as
 a reconciled version with provenance. It is STRICTLY OPTIONAL to the flow: it never blocks, and
-`/ritual begin` runs off the LOCAL `.ritual/build-brief.md` regardless of whether it succeeds —
+`/ritual begin` runs off the LOCAL `.ritual/local/build-briefs/{exploration_id}/BUILD-BRIEF.md` regardless of whether it succeeds —
 begin neither reads nor waits on it.
 
 Skip this step entirely if Step 1 resolved NO exploration id (a local-brief-only run has
@@ -284,7 +293,7 @@ If an exploration id was resolved:
  not READY (still generating, or none exists), SKIP the sync — print one line ("Server brief
  not ready; kept the grounding local.") and continue to Step 6. Do NOT wait or poll.
 2. **Save the grounded brief back.** Call `save_reconciled_brief` with the
- exploration id, `content` set to the full grounded `.ritual/build-brief.md`, and a short
+ exploration id, `content` set to the full grounded local brief, and a short
  `reconciliation_summary` (e.g. "Grounded against `<branch>` @ <HEAD-SHA-short>"). Do NOT pass
  a source review id. The server snapshots the original as an immutable version, saves the
  grounded one, and stamps pre-signup provenance automatically — you do not signal that.
@@ -319,7 +328,7 @@ Never omit the "What changed" block or the agent debrief.
 
 - One user pause maximum (Step 1a, repo disambiguation). All other steps run without stopping.
 - Do NOT run shell commands in the target repo beyond the git probes in Step 1.
-- Do NOT modify any file in the target repo EXCEPT `.ritual/build-brief.md`, the brief you ground.
+- Do NOT modify any file in the target repo EXCEPT `.ritual/local/build-briefs/{exploration_id}/BUILD-BRIEF.md` (and the one-time legacy migration above), the brief you ground.
 - refine does NOT call `generate_build_brief` and does NOT re-synthesize on the server. The
  brief already exists on disk; refine sharpens it in place. It MAY call `save_reconciled_brief`
  (Step 5.5) to sync the grounded brief back — a save, not a re-synthesis, and non-blocking;
