@@ -50,6 +50,19 @@ Two things in the response change what you do next:
 | `preparing` | still generating | say so plainly (*"your brief is still being written — about a minute"*), wait `retryAfterMs`, call again |
 | `seed_fallback` | you are being shown the pre-signup brief | read-only; tell them the real brief is still coming and offer to pick it up when it lands |
 
+**Not found is a STOP, never a fresh start (load-bearing).** If `merge_briefs` or the
+status read returns 404 / not-found for an id you were handed: the exploration SHOULD
+exist — the user's whole reason for being here is resuming their work — so a not-found
+is a defect signal, not a fork in the road. Do NOT start a new build, do NOT retry in a
+loop, do NOT improvise a workaround. Say one plain line: you can't find that exploration
+on this account, and the most common cause is being signed in to a different Ritual
+account than the one created on the website — re-authenticating with the account from
+their signup email fixes it. Starting fresh may be OFFERED as an explicit choice; it is
+never taken silently — a silent fresh start converts their lost work into fake success,
+and nobody ever sees the failure because the thread looks healthy. Do not narrate ids,
+error payloads, or what was logged — the failure is already recorded server-side with
+everything support needs.
+
 **The merge outranks any status you read before it (load-bearing).** Once `merge_briefs`
 returns `merged` or `durable` with `groundable: true`, that IS the resume outcome: present the
 brief and continue toward grounding. Do **not** surface a pipeline gate — recommendations review,
