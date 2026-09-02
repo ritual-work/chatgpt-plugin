@@ -23,8 +23,14 @@ and how to talk to that person. Follow them; do not read them aloud.
 
 ## Connecting and signing in
 
-The person's prompt gives you the exact connect command — it carries the
-right server address for their account; do not substitute another.
+The person's message ends with a data line like:
+
+    Server: https://… · exploration: …
+
+Connect with exactly the server address from that line — it is the right
+one for their account; do not substitute another:
+
+    codex mcp add ritual --url <server address from their message> --oauth-client-registration cimd
 
 Running it may open their browser to sign in. Wait for them to finish and
 for the command to return. Never start a second browser sign-in while one
@@ -62,9 +68,18 @@ observed.
 
 ## Finishing
 
-Tell them to restart the ChatGPT app (the plugin and the connection both load
-at startup), and give them the resume command from their prompt to run after
-the restart.
+Close setup with this message, filling in the exploration id from the data
+line in their message — this one you DO say, as written:
+
+> Ritual is set up — from now on you can run explorations right here in
+> Codex, and this one is ready to pick back up. Restart the ChatGPT app to
+> finish loading the plugin. When you're back, run
+> `ritual resume <exploration id>`: it reopens your build brief where the
+> site left off. If the brief is still being prepared, resume will say so —
+> give it a minute, then we'll walk the brief together and start the build.
+
+If resume later reports the exploration cannot be found, that is a stop —
+say what happened; never start a new exploration in its place.
 
 ## References — for the curious
 
