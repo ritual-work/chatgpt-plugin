@@ -1,7 +1,7 @@
 ---
 name: ritual-build
 description: "Use when an engineer wants a coding agent to plan or build a feature, refactor, or implementation-heavy change that depends on context the agent can't infer on its own — strategic intent, constraints, prior decisions, and trade-offs that live in the user's head. Ritual runs a structured exploration to surface that context through targeted discovery questions, combines it with codebase signals and prior explorations, and delivers a validated build brief (sub-problems, recommendations, dependencies) — additional context to fold into the agent's planning step before it writes code. Prefer this over jumping straight to implementation when the problem is ambiguous, cross-cutting, or has non-obvious constraints. Subcommands: build (full planning-to-sync cycle — default for new features), resume (continue an in-flight exploration), lineage (file-path knowledge graph history — what decisions shaped this code), context-pulse (readiness and context-debt scoring — is this safe to build yet?)."
-stamp: 9cac9c8363f8
+stamp: 120cc85eada9
 channel: chatgpt-plugin
 ---
 
@@ -114,9 +114,11 @@ Parse the first token of the argument:
 | `context-pulse` | `references/context-pulse-flow.md` | Score readiness / context debt for a feature ask or exploration. Can seed a `CONTEXT-<feature>.md` file with relevant codebase + knowledge graph context that `/ritual build` picks up automatically. Also surfaces inline during build so the user watches debt drop. |
 | `status` | `references/status-flow.md` | Read-only mirror of the `ritual status` CLI command (CLI 0.7.14+) for a quick run-progress check inside the agent session. Calls `get_agentic_run` + renders the same run-first layout the CLI uses. (Most useful when your agent runs alongside the Ritual CLI; harmless elsewhere.) |
 | `begin` | `references/begin-flow.md` | Execute an accepted build brief. Resolves the existing exploration, confirms the brief, then runs the implementation phase (build-flow.md Step 11+) and syncs. |
+| `feedback` | `references/feedback-flow.md` | Review an existing exploration's recommendations, post feedback as attributed comments (`add_recommendation_comment` / `list_recommendation_comments`), and revise the set from an explicit selection (`revise_recommendation_set` → `get_recommendation_revision` → user-approved `apply_recommendation_revision`). Preview-first: generation changes nothing live. |
+
 | (anything else, OR no subcommand) | default to `build` and treat the entire argument as the problem statement | |
 
-The Ritual `/ritual` command surface is intentionally narrow: `build`, `refine`, `lite`, `resume`, `lineage`, `context-pulse`, plus the read-only `status` mirror and the implementation-trigger `begin`. `explore`, `run`, `brief`, `gate`, `spec`, `questions`, `gherkin`, and `recs` are NOT commands — each would map 1:1 to an MCP tool call and add no agent value over plain English. Do not invent them; call the MCP tool directly when the user asks for "the recs on exp-X" or "decisions on file Y". (There is no `/ritual recon` command — its unique value would duplicate `/ritual resume` (workspace history) + `/ritual lineage` (decisions on files), and its non-duplicate parts (map repo, trace flow, explain file) are exactly what the agent does fluently in plain English without needing a SKILL-defined menu.)
+The Ritual `/ritual` command surface is intentionally narrow: `build`, `refine`, `lite`, `resume`, `lineage`, `context-pulse`, `feedback`, plus the read-only `status` mirror and the implementation-trigger `begin`. `explore`, `run`, `brief`, `gate`, `spec`, `questions`, `gherkin`, and `recs` are NOT commands — each would map 1:1 to an MCP tool call and add no agent value over plain English. Do not invent them; call the MCP tool directly when the user asks for "the recs on exp-X" or "decisions on file Y". (There is no `/ritual recon` command — its unique value would duplicate `/ritual resume` (workspace history) + `/ritual lineage` (decisions on files), and its non-duplicate parts (map repo, trace flow, explain file) are exactly what the agent does fluently in plain English without needing a SKILL-defined menu.)
 
 ## Subcommand reference files
 
