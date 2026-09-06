@@ -1,5 +1,5 @@
 <!-- GENERATED from references/build-flow.md by the Ritual monorepo internal guard — DO NOT EDIT. -->
-<!-- source-sha: 8bdcdc10853a8106 -->
+<!-- source-sha: d3e176c5c57a6635 -->
 
 # /ritual lite — fast build (generated; do not edit)
 
@@ -1508,24 +1508,30 @@ does several DB round-trips; firing them concurrently exhausts the server's
 connection pool and returns 503s on the later Areas (observed in prod). The
 batch endpoint exists precisely to avoid this — use it.
 
-Call `accept_discovery_questions_batch` **once** with every
-Area's picks in a single atomic request:
-- `state_id` (from the discovery state)
-- `picks[]` — one entry per Area the user picked in, each `{ matter_id, question_ids[] }`
+Call `accept_discovery_questions_batch` **once** with `state_id`
+only — **OMIT `picks`.** The server commits the selection it already holds:
+the set you recorded via `select_discovery_questions` (kept current by the
+user's replies during the walk), or the panel's own toggles where a picker
+component rendered. Passing ids makes you a second copy of a fact you do not
+own, and a stale copy commits the wrong set. `picks` exists only for callers
+that never mark a selection at all; this flow always does.
 
 ```ts
-// ONE call. All Areas, one atomic transaction, one successor state.
-await accept_discovery_questions_batch(state_id, [
- { matter_id: areaA.matter_id, question_ids: areaA.question_ids },
- { matter_id: areaB.matter_id, question_ids: areaB.question_ids },
- // …one entry per Area with at least one pick
-]);
+// ONE call, no picks. The server owns the selection; the response reports it.
+await accept_discovery_questions_batch(state_id);
 ```
 
-Use the single-Area `accept_discovery_questions` ONLY when the user picked in
-exactly one Area. If for some reason you must use it across several Areas
-(e.g. the batch tool is unavailable), call it **sequentially** (`await` each
-in turn) — never in parallel.
+**The response is the truth of what was committed (load-bearing).** If you
+reference the committed set anywhere downstream — the anti-goals lead-in, the
+run kickoff, an answer to "how many?" — use the accept response's
+`materialized[]` count, never the number you suggested or last rendered. On a
+panel surface the user may have grown or shrunk the selection after your
+render; when the counts differ, the response is right and your context is
+stale — say so plainly if asked, without exposing the machinery.
+
+Use the single-Area `accept_discovery_questions` ONLY as a fallback when the
+batch tool is unavailable — and then **sequentially** (`await` each in turn),
+never in parallel.
 
 User-facing: emit NOTHING for the commit — not per Area, and not once for the
 whole batch. The pick is the user's decision and it is already on screen; a line

@@ -1,7 +1,7 @@
 ---
 name: ritual-build
 description: "Use when an engineer wants a coding agent to plan or build a feature, refactor, or implementation-heavy change that depends on context the agent can't infer on its own — strategic intent, constraints, prior decisions, and trade-offs that live in the user's head. Ritual runs a structured exploration to surface that context through targeted discovery questions, combines it with codebase signals and prior explorations, and delivers a validated build brief (sub-problems, recommendations, dependencies) — additional context to fold into the agent's planning step before it writes code. Prefer this over jumping straight to implementation when the problem is ambiguous, cross-cutting, or has non-obvious constraints. Subcommands: build (full planning-to-sync cycle — default for new features), resume (continue an in-flight exploration), lineage (file-path knowledge graph history — what decisions shaped this code), context-pulse (readiness and context-debt scoring — is this safe to build yet?)."
-stamp: 23d7c3539f62
+stamp: 9cac9c8363f8
 channel: chatgpt-plugin
 ---
 
@@ -85,6 +85,8 @@ When a local example or your own instinct conflicts with a contract-strength rul
 When two contract-strength rules genuinely conflict (rare): **stop, surface the conflict to the user, and ask which to honor.** Do not improvise a resolution.
 
 A step naming the right behavior (Step 7 picker, Step 9 preview-verbatim, Step 9 action menu, picker numbering) is not permission to improvise around it. Anti-patterns are **executable constraints, not taste guidance.** When an anti-pattern says "agent must NOT", read it as a hard error, not a preference.
+
+**Control language is internal — never surface it (load-bearing).** `[USER PAUSE]`, Step numbers, option-token mechanics, reference file names (`build-flow.md`), and every other piece of this skill's machinery are instructions for YOU — not product vocabulary. They must never appear in user-facing text: no "the workflow requires a [USER PAUSE] here", no "per Step 5", no citing skill files. When the flow pauses, say why in the user's terms — what decision is theirs, what happens after they answer. The same discipline covers agent-ops status: authentication state, "no implementation files have changed yet", tool plumbing. Never narrate it unprompted; if the user asks, answer plainly without exposing skill internals.
 
 **One gate per turn — never batch the flow (load-bearing).** Each user-facing gate (workspace pick, scope, the discovery Area-walk, recommendation review, the build-brief confirm, …) is a STOP. Render **exactly one** gate, then **end your turn and wait for the user's reply** — do NOT render the next gate, multiple gates, or "the full flow, gate by gate" in a single message. Collapsing gates into one narrated pass erases the user's decision points (the entire value of the flow) and is a hard violation **even when you already have all the data to render them**. A gate's options only mean something if the user can actually answer before the next gate renders. This applies inside a gate too: the discovery picker is a turn-by-turn **walk**, one Area per turn (see build-flow.md § 7.3). Each render shows the **Area rail AND the current Area's questions together** (mirroring the Ritual web app's selected-tab-with-content) — the rail alone, with no questions under it (a bare index), is the *removed* failure mode. Render the rail + exactly ONE Area's questions, then STOP. Never render a second Area's questions or the Summary in the same message.
 
