@@ -71,9 +71,13 @@ go. They may also narrow which addressed comments to resolve.
  regenerate; never force. A repeated apply is safe (it returns the recorded
  outcome).
 
-8. **Report the outcome.** From the apply response: what changed, which
- comments were resolved, and — via `list_recommendation_comments`
- (status `unresolved`) — what feedback remains open. Derived requirement
+8. **Show the updated set, then report.** Call
+ `get_recommendations` for the exploration so the revised set
+ renders (on component surfaces this re-renders the same recommendation
+ cards the user already knows). Then report from the apply response: what
+ changed, which comments were resolved, and — via
+ `list_recommendation_comments` (status `unresolved`) — what
+ feedback remains open. Derived requirement
  sets regenerate on their own schedule; do not claim downstream artifacts
  are fresh until their own status says so.
 
