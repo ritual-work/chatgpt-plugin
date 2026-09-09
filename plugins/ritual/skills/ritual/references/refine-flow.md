@@ -83,7 +83,7 @@ step between entering the flow and "the brief is updated"):*
 > » Net: {materially changed my build plan | sharpened the details | mostly confirmed my read} — {≤10-word justification}.
 >
 > `/ritual begin` hands it to your agent — auto mode to build, plan mode to review first.
-> `drill {N}` inspects one requirement. Reply `pause` to stop here.
+> `drill {N}` inspects one requirement. `view` opens the brief as a readable page. Reply `pause` to stop here.
 
 **Agent-debrief rules (the `»` block above, headed "What this changed for me (your
 coding agent):").** This is the AGENT speaking for itself,
@@ -140,9 +140,23 @@ tool fails and blocks the flow, that failure surfaces INSIDE the next render (or
 neither-exists stop), never as a standalone commentary line.
 
 **Reply routing at the final gate is closed-set:** a user reply maps to exactly one of
-{`drill` detail inside the same render frame, R2}. (`/ritual begin` is a new flow, not a
-reply.) There is no third kind of response. If the reply is unrecognized, re-emit the
-gate's option line — one line, nothing else.
+{`drill` detail inside the same render frame, `view`, R2}. (`/ritual begin` is a new flow,
+not a reply.) There is no fourth kind of response. If the reply is unrecognized, re-emit
+the gate's option line — one line, nothing else.
+
+**On `view` — render the brief as a readable page.** The six-column requirement table is
+unreadable in a terminal; `view` gives the user the same brief as a styled page, read-only:
+
+- Compose an HTML rendering of the CURRENT saved brief — full content, the requirement
+ table as a real table, headings preserved. Design it as a document to read, not a dump.
+- Publish it the best way the session allows: a page/artifact publishing tool when one is
+ available, otherwise write `.ritual/local/build-briefs/{exploration_id}/BUILD-BRIEF.html`
+ and open it with the OS opener (`open` / `xdg-open`); if neither is possible, say the
+ page needs a browser-capable session and re-emit the option line.
+- `view` is a RENDER, never a mutation: it must not change `BUILD-BRIEF.md`, call any
+ saving tool, or alter the exploration. The page is a projection of the saved brief.
+- After handing over the page (one line: where it is), re-emit the gate's option line —
+ the user is still at the final gate.
 
 ---
 
@@ -299,6 +313,24 @@ If an exploration id was resolved:
  grounded one, and stamps pre-signup provenance automatically — you do not signal that.
 3. **Non-blocking.** If the call errors for ANY reason, print one line ("Cloud sync skipped:
  <reason>; grounding is saved locally.") and continue. Never retry, never stop.
+
+**Every later brief edit pushes back the same way (HARD, all flows).** This step is also
+the contract for ANY subsequent user-requested edit to the brief's content, in any flow or
+between flows — "change RB-3 to …", "drop the second phase", "add an anti-goal to the
+non-goals section". Whenever you edit the local `BUILD-BRIEF.md` at the user's request:
+
+1. Make the edit locally, exactly as asked.
+2. Run the same push-back: `get_build_brief_status` gate, then `save_reconciled_brief` with
+ the full edited content and a `reconciliation_summary` naming the user's change in their
+ words (e.g. "User edit: RB-3 now requires soft-delete"). Same non-blocking posture.
+3. Confirm in ONE line that the change is saved — user nouns, no tool names ("Updated and
+ saved to your Ritual exploration." / on a failed push: "Updated locally; cloud save
+ didn't go through, so this edit lives only in this repo for now.").
+
+An edited brief that never pushes back is a silent fork: Ritual's copy — what future
+grounding, drift checks, and collaborators read — keeps serving the pre-edit content, and
+the user has no way to notice. The local file stays the working copy; the push is what
+keeps the exploration true.
 
 ### Step 6 — Emit the final render
 

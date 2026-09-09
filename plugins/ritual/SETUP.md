@@ -23,7 +23,7 @@ and how to talk to that person. Follow them; do not read them aloud.
 
 ## Connecting and signing in
 
-The person's message ends with a data line like:
+The person's message carries a data line (its second line) like:
 
     Server: https://… · exploration: …
 
@@ -72,11 +72,28 @@ Close setup with this message, filling in the exploration id from the data
 line in their message — this one you DO say, as written:
 
 > Ritual is set up — from now on you can run explorations right here in
-> Codex, and this one is ready to pick back up. Restart the ChatGPT app to
-> finish loading the plugin. When you're back, run
-> `ritual resume <exploration id>`: it reopens your build brief where the
-> site left off. If the brief is still being prepared, resume will say so —
-> give it a minute, then we'll walk the brief together and start the build.
+> Codex, and this one is ready to pick back up.
+>
+> Restart the ChatGPT app to finish loading the plugin, and open the new
+> thread in the repo you'll build in. When you're back, run:
+>
+> ```
+> ritual resume <exploration id>
+> ```
+>
+> It reopens your build brief where the site left off. If the brief is still
+> being prepared, resume will say so — give it a minute.
+>
+> If the idea was just a test drive, skip resume and start on something real:
+>
+> ```
+> ritual build <the thing you're actually building>
+> ```
+>
+> Describe it the way you'd brief a teammate — one or two sentences is plenty.
+
+Both commands go in their own fenced code block, exactly as above — that is
+what gives them a copy button in the composer.
 
 If resume later reports the exploration cannot be found, that is a stop —
 say what happened; never start a new exploration in its place.
