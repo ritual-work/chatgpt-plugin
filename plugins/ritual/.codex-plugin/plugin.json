@@ -1,6 +1,6 @@
 {
   "name": "ritual",
-  "version": "0.2.16",
+  "version": "0.2.17",
   "description": "Frame real work before you build it: Ritual turns a rough idea into a sharp problem statement, targeted discovery questions you pick from, and explainable build-ready recommendations.",
   "author": {
     "name": "Ritual",
@@ -21,7 +21,7 @@
   "interface": {
     "displayName": "Ritual",
     "shortDescription": "Frame real work before you build it",
-    "longDescription": "Ritual turns a rough idea into a sharp problem statement, targeted discovery questions you pick from, and explainable build-ready recommendations \u2014 the context a coding agent cannot infer on its own.",
+    "longDescription": "Ritual turns a rough idea into a sharp problem statement, targeted discovery questions you pick from, and explainable build-ready recommendations — the context a coding agent cannot infer on its own.",
     "developerName": "Ritual",
     "category": "Productivity",
     "capabilities": [
