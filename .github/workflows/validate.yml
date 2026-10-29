@@ -1,0 +1,61 @@
+name: validate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 20
+
+      # Upstream drift needs the private source checkout and is checked where
+      # that lives. What this repo can verify on its own:
+      - name: manifest and marketplace parse, versions agree, shipped surface is complete
+        run: node scripts/validate-plugin.mjs
+
+      # ChatGPT and Codex show plugin.json's version verbatim and offer an
+      # update only when it moves, so new skill content under an old version
+      # never reaches anyone who already installed.
+      - name: skill content changed, so the version did too
+        if: github.event_name == 'pull_request'
+        run: |
+          set -euo pipefail
+          BASE=${{ github.event.pull_request.base.sha }}
+          if git diff --quiet "$BASE" HEAD -- plugins/ritual/skills; then
+            echo "skill content unchanged"
+            exit 0
+          fi
+          OLD=$(git show "$BASE:plugins/ritual/.codex-plugin/plugin.json" | node -p 'JSON.parse(require("fs").readFileSync(0, "utf8")).version')
+          NEW=$(node -p 'require("./plugins/ritual/.codex-plugin/plugin.json").version')
+          if [ "$OLD" = "$NEW" ]; then
+            echo "::error::plugins/ritual/skills changed but plugin.json is still $NEW. Bump the version so installs are offered the update."
+            exit 1
+          fi
+          echo "skill content changed; version $OLD -> $NEW"
+
+      - name: Install gitleaks
+        run: |
+          GITLEAKS_VERSION=8.30.1
+          curl -sSL -o gitleaks.tar.gz \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          tar -xzf gitleaks.tar.gz gitleaks
+          sudo mv gitleaks /usr/local/bin/
+          rm gitleaks.tar.gz
+          gitleaks version
+
+      # The same scan the release pipeline runs before it pushes here: private
+      # references, internal hosts, authoring annotations, and gitleaks.
+      - name: leak scan
+        run: node scripts/check-public-artifact-leaks.mjs .
