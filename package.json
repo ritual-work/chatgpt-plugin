@@ -1,0 +1,12 @@
+{
+  "name": "ritual-chatgpt-plugin",
+  "private": true,
+  "description": "Maintainer scripts for the Ritual ChatGPT / Codex plugin marketplace. Not a published package; the plugin is the artifact.",
+  "license": "UNLICENSED",
+  "scripts": {
+    "sync": "node scripts/sync-ritual-skill.mjs",
+    "validate": "node scripts/validate-plugin.mjs",
+    "check-leaks": "node scripts/check-public-artifact-leaks.mjs .",
+    "check": "node scripts/validate-plugin.mjs && node scripts/check-public-artifact-leaks.mjs ."
+  }
+}

@@ -48,6 +48,11 @@ The `ritual-build` skill, plus slash commands for the rest of the workflow:
 
 - `plugins/ritual/` — the installable plugin: manifest, skill, commands.
 - `.agents/plugins/marketplace.json` — the marketplace index.
+- `scripts/` — maintainer tooling: the skill sync, plugin validation and the
+  leak scan CI runs on every pull request.
 
-This repository is a generated distribution: releases are published to it as
-single versioned commits. Issues and feedback: https://ritual.work
+The skill under `plugins/ritual/skills/` is generated, never edited here: when
+Ritual releases a new version of it, a sync pull request regenerates it, records
+its source hash in `plugins/ritual/.skill-stamp.json` and bumps the plugin
+version so installs are offered the update. Issues and feedback:
+https://ritual.work
