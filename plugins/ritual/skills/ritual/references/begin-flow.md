@@ -30,7 +30,9 @@ When **not** to use:
 
 1. Read `.ritual/config.json` for the pinned `explorationId` (or `workspaceId` + repo key). This is the preferred binding.
 2. If no pin: call `list_explorations` to show the compact roster, then let the user pick (same picker as Step R2 in `references/resume-flow.md`).
-3. Call `get_exploration_status` on the resolved exploration to read its LIVE state — do NOT assert status from memory or prior turns.
+3. Call `get_exploration_status` on the resolved exploration to read its LIVE state — do NOT assert status from memory or prior turns. Keep its `terminal` and `deliverable`: they decide what B2 looks for and what B4 runs.
+
+**A job that does not end in implementation** (`terminal` other than `implement`) has no Build Brief: its executable artifact is the {deliverable} itself (`EVAL-SPECIFICATION.md`, `MIGRATION-PLAN.md`, `ARCHITECTURE-DECISION-RECORD.md`, `DEBUGGING-BRIEF.md`). For those jobs read `{DELIVERABLE}.md` where B2 says `BUILD-BRIEF.md`, fetch it with `get_deliverable_document` (build-flow Step 10e) where B2 says server brief, render B3 through `render_gate` `brief_confirm` with `{ deliverable, terminal }` instead of the verbatim block below, and enter Step 11 through its dispatch table (`references/terminal-flows.md`) instead of 11.0.0.
 
 **Do not re-run planning or discovery.** This step reads what already exists. If unsure which exploration, call `list_explorations` first.
 
@@ -38,7 +40,7 @@ When **not** to use:
 
 **Read live state before asserting anything (load-bearing — grounding policy).** A brief satisfies this gate from EITHER source — check both, in this order:
 
-1. **Local brief on disk.** Read `.ritual/local/build-briefs/{exploration_id}/BUILD-BRIEF.md` (the exploration was resolved in B1, so the id is known). **Legacy migration, one-time and silent:** if that file is absent but the flat `.ritual/build-brief.md` exists with real content (not the `_Build brief not available yet._` placeholder), move it into the per-exploration directory first — create the directory, ensure `.ritual/local/` is gitignored per build-flow Step 10c — then read it from there. The flat path is the legacy location from before per-exploration directories; it is not gitignored and can collide across explorations, so nothing reads or writes it beyond this migration.
+1. **Local deliverable on disk.** Read `.ritual/local/build-briefs/{exploration_id}/{DELIVERABLE}.md`, falling back to `BUILD-BRIEF.md` when that name is absent — repos hold the old name from runs before the file was named for the job (never rename one already on disk) (the exploration was resolved in B1, so the id is known). **Legacy migration, one-time and silent:** if that file is absent but the flat `.ritual/build-brief.md` exists with real content (not the `_Build brief not available yet._` placeholder), move it into the per-exploration directory first — create the directory, ensure `.ritual/local/` is gitignored per build-flow Step 10c — then read it from there. The flat path is the legacy location from before per-exploration directories; it is not gitignored and can collide across explorations, so nothing reads or writes it beyond this migration.
 
  A real brief at the per-exploration path IS an executable brief — proceed to Step B3. This is the prelogin path: `/ritual refine` grounded the marketing-site brief on disk WITHOUT calling the core `generate_build_brief`, so there is no server build-brief row, and that is expected. Do not block on the server when a real brief is already on disk.
 2. **Server brief.** If there is no usable local brief, call `get_exploration_status`. If it shows an accepted/ready build brief, that satisfies the gate too (the normal `/ritual build` path) — proceed to Step B3.
@@ -53,9 +55,9 @@ Only if NEITHER a local brief nor a server brief exists (the exploration is stil
 Ritual begin
 ✓ Scope · ✓ Discovery · ✓ Recommendations · Build brief · Implementation
 
-No accepted build brief found for this exploration.
+No accepted {deliverable} found for this exploration.
 
-`begin` executes an existing accepted brief. To get one:
+`begin` executes an existing accepted {deliverable}. To get one:
 
   · /ritual build  — run the full planning cycle (new explorations)
   · /ritual refine — ground an imported brief and sharpen recommendations
