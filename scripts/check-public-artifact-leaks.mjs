@@ -127,7 +127,8 @@ export const ALLOWLIST = [
   {
     rules: ['dated-note'],
     match: /^<!--\s*source-sha:/,
-    reason: 'provenance stamp written by the generator so a reader can tell which build a file came from',
+    reason:
+      'provenance stamp written by the generator so a reader can tell which build a file came from',
   },
   {
     rules: ['pr-ref'],
@@ -183,18 +184,31 @@ export function scanText(text, file = '') {
     for (const m of text.matchAll(rule.re)) {
       if (rule.keep && !rule.keep(m[0])) continue;
       if (allowed(rule.id, m[0])) continue;
-      findings.push({ file, rule: rule.id, ...position(text, m.index), text: snippet(m[0]), why: rule.why });
+      findings.push({
+        file,
+        rule: rule.id,
+        ...position(text, m.index),
+        text: snippet(m[0]),
+        why: rule.why,
+      });
     }
   }
   const tokens = [...text.matchAll(/[A-Za-z0-9][A-Za-z0-9-]*/g)];
   tokens.forEach((t, i) => {
     const candidates = [t[0]];
     const next = tokens[i + 1];
-    if (next && text.slice(t.index + t[0].length, next.index) === ' ') candidates.push(`${t[0]} ${next[0]}`);
+    if (next && text.slice(t.index + t[0].length, next.index) === ' ')
+      candidates.push(`${t[0]} ${next[0]}`);
     for (const c of candidates) {
       const rule = HASHED_TERMS.get(shortHash(c.toLowerCase()));
       if (!rule || allowed(rule, c)) continue;
-      findings.push({ file, rule, ...position(text, t.index), text: snippet(c), why: HASH_WHY[rule] });
+      findings.push({
+        file,
+        rule,
+        ...position(text, t.index),
+        text: snippet(c),
+        why: HASH_WHY[rule],
+      });
     }
   });
   return findings;
@@ -224,11 +238,22 @@ export function scanDir(root) {
 }
 
 function runGitleaks(root, config) {
-  const args = ['detect', '--no-git', '--source', root, '--no-banner', '--redact', '--exit-code', '1'];
+  const args = [
+    'detect',
+    '--no-git',
+    '--source',
+    root,
+    '--no-banner',
+    '--redact',
+    '--exit-code',
+    '1',
+  ];
   if (config) args.push('--config', config);
   const res = spawnSync('gitleaks', args, { stdio: 'inherit' });
   if (res.error?.code === 'ENOENT') {
-    console.error('✗ gitleaks is not installed; install it, or pass --no-gitleaks to run only the pattern scan.');
+    console.error(
+      '✗ gitleaks is not installed; install it, or pass --no-gitleaks to run only the pattern scan.',
+    );
     process.exit(2);
   }
   return res.status === 0;
@@ -244,13 +269,16 @@ function main(argv) {
   const configArg = take('--gitleaks-config');
   const dirArg = args.find((a) => !a.startsWith('--'));
   if (!dirArg || !existsSync(dirArg) || !statSync(dirArg).isDirectory()) {
-    console.error('usage: check-public-artifact-leaks.mjs <dir> [--no-gitleaks] [--gitleaks-config <file>]');
+    console.error(
+      'usage: check-public-artifact-leaks.mjs <dir> [--no-gitleaks] [--gitleaks-config <file>]',
+    );
     process.exit(2);
   }
   const root = resolve(dirArg);
 
   const { files, findings } = scanDir(root);
-  for (const f of findings) console.error(`${f.file}:${f.line}:${f.col}  ${f.rule}  "${f.text}"  — ${f.why}`);
+  for (const f of findings)
+    console.error(`${f.file}:${f.line}:${f.col}  ${f.rule}  "${f.text}"  — ${f.why}`);
 
   let gitleaksOk = true;
   if (!noGitleaks) {
@@ -263,10 +291,15 @@ function main(argv) {
     const parts = [];
     if (findings.length) parts.push(`${findings.length} pattern finding(s)`);
     if (!gitleaksOk) parts.push('gitleaks findings');
-    console.error(`✗ ${dirArg}: ${parts.join(' and ')} in ${files} file(s). Nothing here may be published.`);
+    console.error(
+      `✗ ${dirArg}: ${parts.join(' and ')} in ${files} file(s). Nothing here may be published.`,
+    );
     process.exit(1);
   }
-  console.log(`✓ ${dirArg}: ${files} file(s) clean${noGitleaks ? ' (pattern scan only)' : ', gitleaks clean'}.`);
+  process.stdout.write(
+    `✓ ${dirArg}: ${files} file(s) clean${noGitleaks ? ' (pattern scan only)' : ', gitleaks clean'}.\n`,
+  );
 }
 
-if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) main(process.argv);
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url))
+  main(process.argv);
