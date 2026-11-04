@@ -1,5 +1,5 @@
-<!-- GENERATED from references/build-flow.md by the Ritual monorepo internal guard — DO NOT EDIT. -->
-<!-- source-sha: 3dcf0604be8e52f6 -->
+<!-- GENERATED from references/build-flow.src.md by the Ritual monorepo internal guard — DO NOT EDIT. -->
+<!-- source-sha: 2d7be8fda1fc2644 -->
 
 # /ritual lite — fast build (generated; do not edit)
 
@@ -9,7 +9,7 @@ implement → PR → next job), just a **smaller discovery surface and fewer pau
 It is **not** lighter in provenance, staged records, constraints, lineage,
 auditability, or knowledge graph sync — only in interaction cost.
 
-Follow build-flow.md's steps below EXACTLY, with these **LITE OVERRIDES**:
+Follow the build flow's steps below EXACTLY, with these **LITE OVERRIDES**:
 
 ## Entry dispatch
 Before the front gate or any entry tool call, check for `--worktree`. If present,
@@ -42,11 +42,11 @@ standard front gate below with `prepare_build` and retain its draft ID.
    This Lite confirmation applies even to a confident classification; it overrides
    the conditional build confirmation below. If `clarifyingQuestion` is present,
    include it verbatim. The server resolves persona coverage.
-2. **Recommendation review (Step 9) — "proceed or expert" (NON-BLOCKING).** The
-   compact landing (`We've generated {N} recs across {K} categories` + one line of
-   titles per category) offers `proceed` or `expert`; inside `expert`, `edit R{N}`
-   (suggest-edit → preview → accept persists) is available. **No reject CTA.**
-   Artifacts are already generating; proceeding never blocks.
+2. **Recommendation review (Step 9) — NON-BLOCKING.** Render the compact landing
+   exactly as §9.1 below: category counts, optional workspace/chat review actions,
+   then the primary `proceed` CTA. The expanded list and refinement follow §9.1a–9.2;
+   the legacy `expert` alias remains accepted. **No reject CTA.**
+   Artifacts may already be generating; assert readiness only from actual status.
 
 ## Skipped in lite
 UX brief review, plan-fidelity audit, and sibling-exploration forks are omitted
@@ -62,6 +62,9 @@ for background discovery (unchosen-options → discovery worktrees). When you se
   classified job (Step 0.7) and the recommendations (Step 9) without waiting —
   take the default at every gate, including those two. (If classification is generic or low-confidence, record the uncertainty and
   provisional scope assumptions in the brief; proceed without a human wait.)
+- **No code grounding before Step 4 in this mode.** §3.9.5 (`ritual ground scope`) needs the
+  draft `prepare_build` creates, and this mode creates none — skip it and let Step 5.7 ground
+  after the frame locks, as before.
 - **Worktree entry overrides the standard front gate above and inherited build entry and Step 6 below.** Do NOT call `prepare_build`
   or `lock_exploration_scope` in this mode. Classify with `classify_request`;
   use the bound workspace, or list workspaces and proceed only when exactly one
@@ -73,12 +76,14 @@ for background discovery (unchosen-options → discovery worktrees). When you se
   If the invocation supplies an existing exploration ID, read its status and
   resume it instead; preserve its recorded origin rather than relabeling it.
 - **Answer the discovery questions YOURSELF (Step 8 override) — do NOT call
-  `start_agentic_run`.** You have the repo open; you are the best answerer. The
+  `start_discovery_run`.** You have the repo open; you are the best answerer. The
   accept call (Step 7.4, `accept_discovery_questions_batch`) returns
   `materialized[]` — the committed questions with their row `id`s. For each, call
-  `write_answer_context(question_id, content)` with an answer
-  grounded in your codebase recon — answer in PARALLEL where your agent supports
-  it (e.g. one subagent per Area). Keep each answer to **~300–600 words by
+  `save_answer_context(question_id, content, cites)` with an answer
+  grounded in your codebase recon, passing the lines it rests on as `cites`
+  (`path:line` or `path:start-end` from the repository root, at most 25, e.g.
+  `["lib/auth.ts:72-83", "app/api/users/[userId]/route.ts:33"]`) — answer in
+  PARALLEL where your agent supports it (e.g. one subagent per Area). Keep each answer to **~300–600 words by
   default**. The answer is **prose**; code is **optional reference, not part of
   the answer** — attach a snippet only when it would help a future reader/agent
   reason about your answer (a key type/contract/call site), never to complete it.
@@ -92,7 +97,7 @@ for background discovery (unchosen-options → discovery worktrees). When you se
   The content is provisional + provenance-tagged agentic until committed. When
   every committed question has answer context, call
   `submit_all_answers(exploration_id)` — it commits the set and
-  triggers recommendation generation (the BYO-answerer flow; `start_agentic_run`
+  triggers recommendation generation (the BYO-answerer flow; `start_discovery_run`
   is unnecessary). Then poll `get_recommendations_preview` until ≥1 recommendation
   and continue to the brief.
 - **Materialize the reasoning as files (OKF projection).** Once the brief is
@@ -131,7 +136,7 @@ Job (classify) -> Scope -> Discovery -> Recommendations -> Build brief (Step 10)
 
 **Forbidden for EVERY turn of the planning phase — not just the first (hard violations):**
 
-- Inventing your own clarifying / scoping / "which option did you mean" questions, or using your agent's own question or prompt UI to gather scope. Scope is captured ONLY inside the flow, via `generate_problem_statement` (Step 4). The flow's own gates (Scope-entry gate, discovery, rec review) are the only pauses.
+- Inventing your own clarifying / scoping / "which option did you mean" questions, or using your agent's own question or prompt UI to gather scope. Scope is captured ONLY inside the flow, via `generate_scope` (Step 4). The flow's own gates (Scope-entry gate, discovery, rec review) are the only pauses.
 - Running ANY **implementation-phase** tooling before the build brief is generated and accepted (Step 10): file writes/edits, package installs, component/scaffold generators, design-asset generators, todo/task lists. (Examples by agent — v0: `GenerateDesignInspiration`, `TodoManager`, `shadcn add`; Cursor/Claude/etc. have equivalents.) Pulling implementation forward is a hard violation. These resume — and are expected — at **Step 11**.
 - Reading repo files or calling `list_workspaces` before the Scope-entry gate is confirmed (Step 0.7). (Code-recon *reads* are fine later, at their step inside the planning phase; this only forbids them up front.) **Narrow exception:** before the `prepare_build` call you MAY gather the signals it takes (without narrating) — `.ritual/config.json` for an already-bound workspace id (passed as `bound_workspace_id`), `ritual repo-key --json` for the repo key/scheme/name/branch, and `.ritual/plugin.local.json` to decide plugin-attached rendering (see *Plugin-attached rendering* below). Never narrate these reads, and never `list_workspaces` here — `prepare_build` resolves the workspace itself; `list_workspaces` is only reached if the user invokes `change` (Step 1).
 - Emitting an empty, "let me think…", or narration-only turn with no tool call (e.g. "I'll start the build flow", "Let me gather context first"). Start the next step; don't announce it.
@@ -150,7 +155,7 @@ The Ritual data model uses product-research terminology. This skill translates t
 | **discovery question** | `question` |
 | **recommendation** | `recommendation` |
 
-When the user says "tighten the scope," call `generate_problem_statement(...)` with their refinement. When you tell the user "I picked these sub-problems," you mean the items you put in `considerations[]`. The tools don't change; only the language to the user does.
+When the user says "tighten the scope," call `generate_scope(...)` with their refinement. When you tell the user "I picked these sub-problems," you mean the items you put in `considerations[]`. The tools don't change; only the language to the user does.
 
 **On "Area" vs "matter":** the API field is `matter` for historical reasons. The user-facing label is **Area** because it's plainer and reads less research-y in a developer flow. NEVER surface "matter" or "matter.name" in user-facing copy — use "Area" / "Area name" instead.
 
@@ -270,7 +275,7 @@ Pausing discipline is still load-bearing — every `**[LITE AUTO — no pause; a
 Every message should be the prescribed gate copy (rail + content + CTA) — terse, plain, no preamble, no sign-off commentary.
 
 **Copy rules (the calm-CLI-wizard contract — every gate obeys these):**
-1. **Never print process/eval labels, platform-object lifecycle, tool/field internals, OR step-transition narration.** No `GATE N`, no `Step N`, no `Auto-decision: …`, no `LLM confidence`, no async-polling-contract talk. **Never name the exploration's internal lifecycle — no "draft", "draft started/created", "exploration created", "going LIVE", "locked".** **Never echo tool names, response fields, or directives — no "binding.action", "binding", "prepare_build", "resumed", "honoring binding…", "gate renderer", "writing config.json".** **Never narrate the step transition — no "now continuing to Scope", "moving on to discovery", "next I'll…".** (Honoring the binding directive — writing `.ritual/config.json` — is SILENT: do it, never announce it. SILENT means the message does not exist at all — a one-liner announcing that you are being silent, e.g. "I'll honor the binding directive silently and load the gate renderer.", IS the leak, and it is the most common form of it: the flow's very first visible output must be the Scope-entry gate itself, never a preamble.) The user is building something; the only vocabulary they ever see is the workflow (Scope → Discovery → Recommendations → Build brief → Implementation) and their workspace. The DRAFT→LIVE exploration and the `prepare_build` machinery are internal Ritual plumbing. The rail already shows where we are — use the rail or a compact header (`Ritual build · 1/5 Scope`), never both, and never a `GATE N` banner.
+1. **Never print process/eval labels, platform-object lifecycle, tool/field internals, OR step-transition narration.** No `GATE N`, no `Step N`, no `Auto-decision: …`, no `LLM confidence`, no async-polling-contract talk. **Never name the exploration's internal lifecycle — no "draft", "draft started/created", "exploration created", "going LIVE", "locked".** **Never echo tool names, response fields, or directives — no "binding.action", "binding", "prepare_build", "resumed", "honoring binding…", "gate renderer", "render_gate", "render gate", "the gate did not render", "writing config.json". **When the gate renderer is absent or declines a frame (a field is missing), compose the gate from the template below and show the gate. Which mechanism produced a screen is never part of the conversation.**** **Never narrate the step transition — no "now continuing to Scope", "moving on to discovery", "next I'll…".** (Honoring the binding directive — writing `.ritual/config.json` — is SILENT: do it, never announce it. SILENT means the message does not exist at all — a one-liner announcing that you are being silent, e.g. "I'll honor the binding directive silently and load the gate renderer.", IS the leak, and it is the most common form of it: the flow's very first visible output must be the Scope-entry gate itself, never a preamble.) The user is building something; the only vocabulary they ever see is the workflow (Scope → Discovery → Recommendations → Build brief → Implementation) and their workspace. The DRAFT→LIVE exploration and the `prepare_build` machinery are internal Ritual plumbing. The rail already shows where we are — use the rail or a compact header (`Ritual build · 1/5 Scope`), never both, and never a `GATE N` banner.
 2. **One decision per message.** Never bundle two gates (e.g. workspace-bind + overlap check) into one visible block. Render one gate, take the reply, then the next.
 3. **End every decision gate with one clear CTA line.** A single `Reply …` / `Next: …` line, not a paragraph of options.
 4. **Lead with "Recommended: …"** instead of multi-line justification. State the recommendation; don't explain why across several lines.
@@ -313,6 +318,7 @@ this is a code-scanning tool, which is the wrong promise entirely.
    - `Recommendations ready.`
    - `Requirements ready.`
    - `Still generating…` / `Still preparing…` (while a slow step runs)
+   - `Reading the codebase…` (once, before `ritual ground scope` at §3.9.5)
    - `No related prior runs in this workspace — starting a new run.` (empty-overlap case only)
 
    A gate must OPEN with its rail. Do **not** print "Computing the suggested 12…", "Rendering the landing", or any "here's what I'm about to show you" line before the rail. And never advance the rail to a stage that hasn't started — mark a stage active (▶) only once its work is actually running.
@@ -325,20 +331,23 @@ this is a code-scanning tool, which is the wrong promise entirely.
 
 | Gate | `kind` | `fields` (from) |
 |---|---|---|
-| Scope-entry (Step 0.7) | `scope_entry` | `{ variant: '2b', deliverable, showImplementation, terminal, restatement, clarifyingQuestion? }` — from `prepare_build` / `classify_request`. **2b only** — 2a and 2c render nothing, so a call for either is a caller error, not a gate. |
-| Scope (§5.1) | `scope` | `{ deliverable, showImplementation, terminal, ask, workspaceName, subProblems: [{n,title,blurb}], problemFrame }` — from `prepare_build` + `generate_considerations` + `generate_problem_statement` |
-| Discovery landing (§7.3.1) | `discovery` | `{ deliverable, showImplementation, terminal, totalQuestions, areaCount, pluginAttached }` — from `get_discovery_state` (+ the plugin-attached marker) |
-| Recommendations (Step 9.1) | `recs_review` | `{ deliverable, showImplementation, terminal, scopeLine, recCount, categories: [{name,titles}], readinessPct, debtPct, debtDeltaPct, debtDeltaNote }` — from `get_recommendations` + the pulse |
+| Scope-entry (Step 0.7) | `scope_entry` | `{ workflow?, variant: '2b', deliverable, showImplementation, terminal, restatement, clarifyingQuestion? }` — from `prepare_build` / `classify_request`. **2b only** — 2a and 2c render nothing, so a call for either is a caller error, not a gate. |
+
+| Scope (§5.1) | `scope` | `{ workflow?, deliverable, showImplementation, terminal, ask, workspaceName, subProblems: [{n,title,blurb}], problemFrame, commitments? }` — from `prepare_build` + `generate_sub_problems` + `generate_scope`; `commitments` is the `concerns[].concern` list from the §3.9.5 receipt, omitted when there is none |
+| Discovery landing (§7.3.1) | `discovery` | `{ workflow?, deliverable, showImplementation, terminal, samples: [{area,text}], remainingAreas, totalQuestions, areaCount, pluginAttached }` — from `get_discovery_state` (+ the plugin-attached marker). `samples` is 1–3 of the suggested questions as `{area, text}`; `remainingAreas` is the names of the Areas not sampled, as prose (`access control, naming, and testability`), never a count |
+| Recommendations (Step 9.1) | `recs_review` | `{ deliverable, showImplementation, terminal, intro, recCount, categories: [{name,titles}], explorationUrl }` — `intro` is one short agent-authored sentence grounded in the current scope and recommendation set, explaining what the user is looking at; categories and counts from `get_recommendations`; `explorationUrl` from the current `get_exploration_status` response. Omit the URL if unavailable; never invent a host. Legacy `scopeLine` and `pulseVerdict` are accepted but not displayed |
 | Deliverable confirm (Step 10d) | `brief_confirm` | `{ deliverable, terminal }` — from `prepare_build`. Omit both only for a generic build (renders the classic "Build brief ready … move to coding"). |
 
-**Every field listed for a `kind` is REQUIRED** (the only optionals are `clarifyingQuestion` on `scope_entry`, `terminal` — pass it whenever `prepare_build` returned one — and `brief_confirm`'s two fields). `render_gate` HARD-FAILS on any missing field (never a partial gate) — so build the **complete** `fields` object before you call. Two values are easy to drop because they aren't in the per-gate tool's primary payload, so source them deliberately every time:
+`workflow` is optional for Scope-entry, Scope and Discovery; the readback flow passes `readback`, while build callers omit it. See `references/readback-flow.md` for its presentation overrides.
+
+**Every field listed for a `kind` is REQUIRED** (apart from `workflow`, the only optionals are `clarifyingQuestion` on `scope_entry`, `commitments` on `scope`, `terminal` — pass it whenever `prepare_build` returned one — and `brief_confirm`'s two fields; `recs_review.explorationUrl` and `recs_review.intro` are optional for older callers). `render_gate` HARD-FAILS on any missing field (never a partial gate) — so build the **complete** `fields` object before you call. Two values are easy to drop because they aren't in the per-gate tool's primary payload, so source them deliberately every time:
 
 - **`ask`** (scope gate only) — the user's ask restated in ONE short clause, e.g. `saved views on the users table`. You author it from what they actually said; no tool returns it. Omit it and the gate rejects the whole frame, leaving you to compose the screen by hand — the variance `render_gate` exists to remove.
 - **`terminal`** — the job's ending, verbatim from `prepare_build` (`implement` | `generate-evals` | `execute-plan` | `record-decision` | `investigate` | `deliver`). It names the rail's last stage and decides what Step 11 does. Thread it into every gate's fields.
 - **`showImplementation`** — `true` when `terminal` is anything but `deliver` (the rail carries a last stage); `false` for product / marketing / prototyping jobs, whose terminal is `deliver`. You already know the function from the Scope-entry classification (`prepare_build`) — thread the same boolean into *every* gate's fields, not just the first.
-- **`workspaceName`** (scope gate only) — the resolved workspace's display name from `prepare_build` (`workspace.name`). It is **not** in `generate_considerations` / `generate_problem_statement` output, so carry it forward from the prepare_build result; don't expect the sub-problem call to supply it.
+- **`workspaceName`** (scope gate only) — the resolved workspace's display name from `prepare_build` (`workspace.name`). It is **not** in `generate_sub_problems` / `generate_scope` output, so carry it forward from the prepare_build result; don't expect the sub-problem call to supply it.
 
-If `render_gate` still returns an error (fields genuinely incomplete, or the tool is absent), that's the **expected fail-closed** — fall back to composing the gate from its template below and run the rule-#8.1 floor check. The tool returns this as a benign error result, not a crash, so a fallback is normal and costs nothing.
+If `render_gate` returns an error (fields incomplete, or the tool is absent), compose the gate from its template below and run the rule-#8.1 floor check. The error names the fields that were missing, so complete the frame or compose from the template; what the user sees is the gate, never the mechanism that produced it (rule #1).
 
 This is deterministic rendering (#75 Slice 4): the server owns the gate's exact bytes, so you cannot perturb them; the byte output is identical to the template you'd compose on the floor (a CI parity matrix pins them equal).
 
@@ -397,7 +406,9 @@ When this gate runs:
    only you can supply (gather them first (without narrating) — the narrow exception above): `bound_workspace_id`
    from `.ritual/config.json` if the repo is bound, and `repo_key` / `repo_key_scheme` / `repo_name` /
    `branch` / `is_default_branch` from `ritual repo-key --json` if your agent can run shell + git (omit
-   all of these for a hosted / browser-only agent or an unbound repo). Do NOT classify yourself, do NOT
+   all of these for a hosted / browser-only agent or an unbound repo). Read `.ritual/config.json` with a
+   command that succeeds when the file is absent (an unbound repo has none); a failing read there is a
+   tool error, not a signal. Do NOT classify yourself, do NOT
    pre-filter to development jobs, do NOT pick a workspace. One call classifies the job, AUTO-RESOLVES
    the workspace, and creates the DRAFT. It returns
    `{ resumed, jtbd, requestLabel, deliverableTemplate, terminal, why, confidence, isGenericFallback, clarifyingQuestion?, personaCoverage, workspace, binding, explorationId }`.
@@ -512,7 +523,7 @@ When this gate runs:
 
 - Otherwise (identity present and not legacy), say nothing and proceed. **At most once per session.**
 
-1. **The workspace is resolved — do NOT emit a standalone workspace message (load-bearing).** `prepare_build` already resolved the workspace; you do NOT pick one. **Do NOT render a workspace line of its own.** A standalone "Working in X" message reads as a turn-end and stalls the flow (the agent stops, waiting, instead of building scope). Instead, **hold `workspace.name` and surface it as the LEAD line of the Scope gate** (Step 5 §5.1) — so the very next thing the user sees after the Scope-entry gate IS the Scope gate, with the workspace named at its top. Between the Scope-entry gate and the Scope gate there is **no user-facing render**: honor the binding directive (step 2) and call `generate_considerations` (Step 4) — emit NOTHING in between — then render the Scope gate. Do NOT call `list_workspaces`, do NOT pause.
+1. **The workspace is resolved — do NOT emit a standalone workspace message (load-bearing).** `prepare_build` already resolved the workspace; you do NOT pick one. **Do NOT render a workspace line of its own.** A standalone "Working in X" message reads as a turn-end and stalls the flow (the agent stops, waiting, instead of building scope). Instead, **hold `workspace.name` and surface it as the LEAD line of the Scope gate** (Step 5 §5.1) — so the very next thing the user sees after the Scope-entry gate IS the Scope gate, with the workspace named at its top. Between the Scope-entry gate and the Scope gate the only user-facing output is the approved line `Still generating…`, rendered once, verbatim, before `generate_sub_problems` (Step 4): honor the binding directive (step 2), render that line, make the call, emit nothing else, then render the Scope gate. Do NOT call `list_workspaces`, do NOT pause.
 
    The workspace name is the only workspace vocabulary the user sees, and only as that Scope-gate lead line — **never** a platform-object lifecycle event. **NEVER say "draft", "started", "created an exploration", "going live", or any exploration lifecycle word: the user is building something; the only vocabulary they ever see is the workflow (Scope → Discovery → Recommendations → Build brief → Implementation) and their workspace. The draft/LIVE exploration is internal Ritual plumbing the user must not be made aware of.**
 
@@ -578,7 +589,7 @@ The server resolves the deliverable template. Use the returned deliverable label
 
 #### Step 3.5 — Stage knowledge sources (PRDs / tickets / transcripts / etc.)
 
-Code grounding happens silently after the frame locks (Step 5.7). Most real features ALSO have non-code context — PRDs, Jira/Linear tickets, design specs, meeting transcripts, Slack threads, customer-research notes — that get paraphrased into the problem statement and lose detail. Step 3.5 ingests those as first-class **knowledge sources** attached to the exploration BEFORE generating sub-problems, so the priorContext you'll see in Step 4 (`generate_considerations`) and downstream is grounded in what the user actually brought, not the paraphrase.
+Code grounding happens silently after the frame locks (Step 5.7). Most real features ALSO have non-code context — PRDs, Jira/Linear tickets, design specs, meeting transcripts, Slack threads, customer-research notes — that get paraphrased into the problem statement and lose detail. Step 3.5 ingests those as first-class **knowledge sources** attached to the exploration BEFORE generating sub-problems, so the priorContext you'll see in Step 4 (`generate_sub_problems`) and downstream is grounded in what the user actually brought, not the paraphrase.
 
 ##### 3.5.1 — Reactive only — do NOT prompt for non-code context
 
@@ -627,7 +638,7 @@ Surface only a staging summary:
 
 ##### 3.5.4 — Update the augmented `raw_input` + score impact
 
-The content the agent collected in Step 3.5.2 also gets folded into the augmented `raw_input` for Step 4's `generate_considerations` so the LLM sees the references inline:
+The content the agent collected in Step 3.5.2 also gets folded into the augmented `raw_input` for Step 4's `generate_sub_problems` so the LLM sees the references inline:
 
 ```
 {original user problem}
@@ -671,16 +682,40 @@ The user can always come back later with `/ritual context-pulse <exploration>` t
 > in what it generates — discovery questions first. Nothing to render and nothing to ask here;
 > continue to Step 4 with the `jtbd` confirmed at Step 0.7.
 
+##### 3.9.5 — Ground the scope in the codebase (runs before Step 4; no user-visible output but one status line)
+
+Right after the Scope-entry gate (Step 0.7) and before `generate_sub_problems`, a Ritual-owned harness reads the codebase and grounds the draft, so the sub-problems are generated against a verified problem model and the few concerns the code makes load-bearing for this change — instead of from the ask alone.
+
+**Run it when all three hold** (otherwise skip this sub-step entirely and let Step 5.7 ground after the frame locks, as before):
+1. `prepare_build` returned an `explorationId` and the repo link was sent with it (a bound repository — the server refuses the step otherwise);
+2. you can run a shell command, `ritual` is on PATH, and `.ritual/config.json` exists in the working tree (the binding `ritual init` wrote);
+3. the user did not ask you to skip reading the code ("just generate, don't read the code").
+
+Render the approved line `Reading the codebase…` once, verbatim, then run from the repository root:
+
+```bash
+ritual ground scope --exploration <explorationId>
+```
+
+The command takes about a minute. It verifies the earlier packet against the code, writes the problem model, proposes **at most three** active concerns, each anchored `path:line`, and posts all of it to the draft; stdout is one JSON receipt: `{ exploration, packet_corrections, concerns: [{concern, why, anchor}], deferral_notes: [{note, anchor?}], sources, engine, model, duration_ms, cost_usd }`. Hold `concerns` for the Scope gate (§5.1). Nothing else from the receipt is shown; the model's prose is never read by you — the server already has it.
+
+- **A refusal receipt (`{ exploration, refused }`) or a non-zero exit** means the harness did not ground: say nothing about it, and continue to Step 4 with Step 5.7 as the grounding step after the frame locks.
+- **A success receipt means Step 5.7 is DONE for this build**: do not read the repository again before the lock, and at Step 6 **omit** `additional_context` and `sources` so the server keeps the verified model and the files the harness anchored.
+
+- The model is Ritual's unless the person set their own (`RITUAL_GROUND_PROVIDER` / `RITUAL_GROUND_MODEL` in their environment); never pass `--provider` or `--model` yourself. When this deployment does not offer Ritual's model, or today's budget for it is spent (the organization's or the person's share), the command refuses and falls back like any other.
+- `deferral_notes` are work outside the confirmed scope the harness noticed: recorded on the exploration, never rendered here, never turned into a consideration.
+- The harness also reads the references Ritual suggests for the job (its kit, served with the draft) as background for that judgment only — the person's own knowledge sources outrank them, and they never become questions or considerations.
+
 #### Step 4 — Generate sub-problems
 
 ##### 4.1 First draft
 
-Call `generate_considerations` with:
+This call takes tens of seconds. Render the approved line `Still generating…` once, verbatim, before it, so the user is not looking at silence after confirming the ask; then call `generate_sub_problems` with:
 - `workspace_id`
 - `raw_input` — the user's problem/ask, **verbatim** (plus any reference context the user spontaneously supplied). **Recon does NOT feed this call (context-at-create):** sub-problems are deliberately generated from the ask alone so the first product output lands fast; repo grounding enters at Step 5.7 and reaches discovery via the persisted `additional_context`.
 - `template_id` — **OPTIONAL.** Per Step 2 (server-side template resolution), the agent does NOT pick a template_id. Omit this field unless the user explicitly passed `--template-id` on the CLI; the server resolves the right template from `user.persona` → `workspace.defaultTemplateId` → system default and uses the same resolution chain `create_exploration` will use at Step 6. Passing it explicitly only matters when overriding the default.
-- `sources` — **OMIT** (recon hasn't run yet; it happens at Step 5.7 after the frame locks).
-- `exploration_id` — the build's draft `exploration_id` (held from `prepare_build` at Step 0.7). Passing it PERSISTS the generated sub-problems as the exploration-scoped canonical selection snapshot (seeded select-all), so the Ritual plugin's sub-problems drawer can read/toggle them. Harmless when no plugin is attached — nothing narrows, so the snapshot stays select-all and behavior is identical to today. Omit only in the rare fallback where no draft exploration exists yet.
+- `sources` — **OMIT** (recon hasn't run yet; it happens at Step 5.7 after the frame locks). Also omitted when §3.9.5 grounded the draft: the server reads the model, the concerns and the files from the draft itself through `exploration_id`.
+- `exploration_id` — the build's draft `exploration_id` (held from `prepare_build` at Step 0.7). Passing it PERSISTS the generated sub-problems as the exploration-scoped canonical selection snapshot (seeded select-all), so the Ritual plugin's sub-problems drawer can read/toggle them. Harmless when no plugin is attached — nothing narrows, so the snapshot stays select-all and behavior is identical to today. Omit only in the rare fallback where no draft exploration exists yet. When §3.9.5 grounded the draft, this is also what lets the server generate the sub-problems against the job's purpose, the verified problem model and the active concerns — a concern surfaces the consideration that handles it and never adds one, so the count stays the same.
 
 LLM call, ~5–10s. Returns 5–6 sub-problems — different framing axes the system should investigate. Track each one as `{ text, version: 1 }` in your working memory.
 
@@ -699,17 +734,17 @@ If `implementationCount === 0`: don't mention the knowledge graph check (silent 
 
 **No pause, and no separate render — auto-accept all generated sub-problems** as `considerations[]` and proceed to Step 5. **Do NOT render the sub-problems on their own here.** A sub-problems-only screen has no decision on it; scope is only meaningfully reviewable once the assembled problem frame sits beside it. So the sub-problems are presented **together with the frame as one Scope gate at Step 5** (§5.1). Store the set (each as `{ text, version: 1 }`) for that combined render. (No `**[LITE AUTO — no pause; auto-pick the recommended default]**` here — sub-problems are not their own gate. If you surfaced the prior-work knowledge graph note above, render it just before the Step 5 Scope gate, not as its own turn.)
 
-**Rationale for auto-accept:** sub-problem selection is a SCOPE-LOCKING decision, and per the SKILL's own rule "`all` is a legitimate declarative choice — often the right one when the agent has surfaced a tight 3-5 sub-problem set." Asking the user to pick before they've seen the problem frame is theater — the problem statement is the assembled artifact where scope is meaningfully visible, and the refine_problem_statement loop at Step 5 accepts arbitrary change prompts ("drop the observability angle", "make this contract-first") that round-trip through the same sub-problem refinement under the hood. Surfacing the sub-problems as info preserves visibility; dropping the pause keeps a first-time user moving.
+**Rationale for auto-accept:** sub-problem selection is a SCOPE-LOCKING decision, and per the SKILL's own rule "`all` is a legitimate declarative choice — often the right one when the agent has surfaced a tight 3-5 sub-problem set." Asking the user to pick before they've seen the problem frame is theater — the problem statement is the assembled artifact where scope is meaningfully visible, and the refine_scope loop at Step 5 accepts arbitrary change prompts ("drop the observability angle", "make this contract-first") that round-trip through the same sub-problem refinement under the hood. Surfacing the sub-problems as info preserves visibility; dropping the pause keeps a first-time user moving.
 
 ##### 4.2 Sub-problem refinement (only when user explicitly asks)
 
-The user may, at the Step 5 problem-statement gate, say something like "rethink the sub-problems" or "the framing is off — show me other angles." When that happens, call `refine_considerations` and re-render the sub-problem set + a fresh problem statement. In the default flow this path is unreachable; it exists for the explicit "rethink scope" escape hatch.
+The user may, at the Step 5 problem-statement gate, say something like "rethink the sub-problems" or "the framing is off — show me other angles." When that happens, call `refine_sub_problems` and re-render the sub-problem set + a fresh problem statement. In the default flow this path is unreachable; it exists for the explicit "rethink scope" escape hatch.
 
-**Pre-flight (mandatory):** before calling `refine_considerations`, run the change pre-flight in `references/change-preflight.md` — restate the change in the user's terms, show the exact `change_prompt` you're about to send, and wait for `yes`. This is a hard pause (even in auto-mode) and fires on every such request, including one-word ones. Do not call the tool until the user confirms.
+**Pre-flight (mandatory):** before calling `refine_sub_problems`, run the change pre-flight in `references/change-preflight.md` — restate the change in the user's terms, show the exact `change_prompt` you're about to send, and wait for `yes`. This is a hard pause (even in auto-mode) and fires on every such request, including one-word ones. Do not call the tool until the user confirms.
 
-Call `refine_considerations` with:
+Call `refine_sub_problems` with:
 - `workspace_id`, `raw_input`, `sources` — unchanged from the generate call. Critical: pass the SAME `sources` array each iteration so the knowledge graph-injected priorContext stays consistent.
-- `template_id` — same rule as Step 4: omit unless the user explicitly overrode it. If you passed `template_id` to the original `generate_considerations` call, pass the same value here for symmetry; otherwise leave it off and let server-side resolution stay consistent across iterations.
+- `template_id` — same rule as Step 4: omit unless the user explicitly overrode it. If you passed `template_id` to the original `generate_sub_problems` call, pass the same value here for symmetry; otherwise leave it off and let server-side resolution stay consistent across iterations.
 - `change_prompt`: the user's request verbatim
 - `selected`: items from prior versions the user kept (track `{ text, from_version }`, send just `text`)
 - `dismissed`: items the user explicitly rejected
@@ -717,7 +752,7 @@ Call `refine_considerations` with:
 
 Track the new items as `{ text, version: N+1 }`. After the refinement, regenerate the problem statement and present it. The user's next pause is again the problem-statement gate.
 
-**Critical**: never re-call `generate_considerations` for a refinement. That endpoint is stateless and re-rolls a fresh seed; you'll lose what the user just told you. The whole point of `refine_*` is the LLM sees the iteration context.
+**Critical**: never re-call `generate_sub_problems` for a refinement. That endpoint is stateless and re-rolls a fresh seed; you'll lose what the user just told you. The whole point of `refine_*` is the LLM sees the iteration context.
 
 Store the final sub-problems for Step 5 — they go into `considerations[]`.
 
@@ -725,12 +760,12 @@ Store the final sub-problems for Step 5 — they go into `considerations[]`.
 
 ##### 5.1 First draft
 
-Call `generate_problem_statement` with:
+Call `generate_scope` with:
 - `workspace_id`
 - `raw_input` (same augmented version from Step 4)
 - `considerations` (the picks from Step 4)
-- `template_id` — OPTIONAL, same rule as Step 4. Omit unless the user explicitly overrode; server resolution stays consistent across `generate_considerations` → `generate_problem_statement` → `create_exploration`.
-- `sources` (the same file-path list passed to generate_considerations — keeps the knowledge graph anchor consistent)
+- `template_id` — OPTIONAL, same rule as Step 4. Omit unless the user explicitly overrode; server resolution stays consistent across `generate_sub_problems` → `generate_scope` → `create_exploration`.
+- `sources` (the same file-path list passed to generate_sub_problems — keeps the knowledge graph anchor consistent)
 
 Returns a candidate problem statement plus optional follow-up questions and quality scores. For engineering / agentic-coding templates, translate the returned statement into a developer-oriented **problem frame** before showing it. Do not default to "How might we…" unless the selected template is product/design oriented or the user asks for HMW phrasing.
 
@@ -749,7 +784,7 @@ Ritual build
 
 {workspace.name} workspace · change to switch
 
-Building {the ask in one short clause} into a {Deliverable} — the decisions and edge cases your coding agent can't infer from the repo.
+Building {the ask in one short clause} into a {Deliverable} — the decisions and edge cases your coding agent has not been told.
 
 {N} things have to be understood before we can recommend what to build.
 
@@ -758,11 +793,13 @@ Building {the ask in one short clause} into a {Deliverable} — the decisions an
 
 Framed as one build: {developer-oriented problem frame}
 
+This scope commits the build to handle {concern X}, {concern Y}, {concern Z}.
+
 Next
 `use` — lock these {N} and draw up discovery questions
 `deliverable` — want something other than a {Deliverable}
 
-Narrow it — `drop 3,5` or `keep 1,2,4`. Reshape the frame — `tighten`, `broaden`, `focus on outbox`.
+Narrow it — `drop {N-1},{N}` or `keep 1,2`. Reshape the frame — `tighten`, `broaden`, `focus on {the first sub-problem's title, lowercased}`.
 ```
 
 **Explain the deliverable and scope at this gate.** Use the returned deliverable label and the proposed sub-problems to help the user assess the scope.
@@ -786,8 +823,9 @@ reply and `previous_jtbd` = the current slug, update the rail, and re-render thi
 stays sticky — only the job changes.
 
 Rules:
-- **Render the combined Scope gate exactly as shown — and nothing else:** the build rail, the one-line `Working in the {workspace} workspace · change to switch` context line (the resolved workspace from `prepare_build`; this is the ONLY place the workspace is surfaced — there is no standalone workspace message), the numbered sub-problems (from Step 4's `considerations[]`), a one-sentence `Problem frame`, and the Reply line. Nothing more — no "Optimize for" block, no "References" block, no constraints list. The sub-problems carry the scope; the frame is the one-sentence lock-point. The sub-problems and the frame are one gate now — never split them across two turns. The `generate_problem_statement` response may include `follow_up_questions` and quality scores: those are for YOUR internal awareness, never for display. Do NOT add an "Open questions" / "what discovery will resolve" section, do NOT preview or list discovery questions here, and do NOT editorialize about what's "still fuzzy" or "what the next step pins down." Discovery is the next step and owns open questions; the frame is a lock-point, not a discovery preview. Surfacing them here both pre-empts Step 7 and clutters the gate.
+- **Render the combined Scope gate exactly as shown — and nothing else:** the build rail, the one-line `Working in the {workspace} workspace · change to switch` context line (the resolved workspace from `prepare_build`; this is the ONLY place the workspace is surfaced — there is no standalone workspace message), the numbered sub-problems (from Step 4's `considerations[]`), a one-sentence `Problem frame`, and the Reply line. Nothing more — no "Optimize for" block, no "References" block, no constraints list. The sub-problems carry the scope; the frame is the one-sentence lock-point. The sub-problems and the frame are one gate now — never split them across two turns. The `generate_scope` response may include `follow_up_questions` and quality scores: those are for YOUR internal awareness, never for display. Do NOT add an "Open questions" / "what discovery will resolve" section, do NOT preview or list discovery questions here, and do NOT editorialize about what's "still fuzzy" or "what the next step pins down." Discovery is the next step and owns open questions; the frame is a lock-point, not a discovery preview. Surfacing them here both pre-empts Step 7 and clutters the gate.
 - **Number the sub-problems in render order** (1..N) — the numbers are the handles the user references in `drop {N}` / `keep {N}`. Title line gets the number; one-line explanation underneath; blank line between items. No version labels like `(v1)`.
+- **The commitment line** (`This scope commits the build to handle …`) renders ONLY when §3.9.5 returned one or more `concerns`: list each receipt `concern` verbatim, in receipt order, comma-separated with no "and"; with `render_gate`, pass them as `commitments: [...]`. With no concerns (or no harness run) the line is OMITTED — never render it empty, never invent a concern, and never add a consideration because a concern exists.
 - Use the scope heading in the template below.
 - Do not show `Engineering problem:` as the heading; use `Problem frame`.
 - Do not say `ship it` unless the user used that language first.
@@ -803,7 +841,7 @@ The numbered sub-problems are selectable at this gate. A **numeric subset pick**
 - **`keep {N,M,…}`** — keep only those; drop the rest.
 - Guard: never empty the set. If a pick would drop every sub-problem, decline in one line ("Keep at least one sub-problem.") and re-render the gate unchanged.
 
-After filtering `considerations[]` to the kept set, **re-derive the frame so it matches the narrower scope** — call `refine_problem_statement` with `considerations` = the kept set, `previous_problem_statement` = the current draft, and `change_prompt` = `"Narrow scope to these sub-problems: {kept titles}."` (This is the one refine call that SKIPS the pre-flight, per above — the pick already states the change precisely.) Then **re-render the combined Scope gate** (§5.1) with the reduced sub-problem list + the re-derived frame, and pause again. The user can narrow again, reshape with an NL edit (§5.2), or `use`.
+After filtering `considerations[]` to the kept set, **re-derive the frame so it matches the narrower scope** — call `refine_scope` with `considerations` = the kept set, `previous_problem_statement` = the current draft, and `change_prompt` = `"Narrow scope to these sub-problems: {kept titles}."` (This is the one refine call that SKIPS the pre-flight, per above — the pick already states the change precisely.) Then **re-render the combined Scope gate** (§5.1) with the reduced sub-problem list + the re-derived frame, and pause again. The user can narrow again, reshape with an NL edit (§5.2), or `use`.
 
 ##### 5.1b Plugin-attached: the drawer narrows sub-problems (the GUI equivalent of `drop`/`keep`)
 
@@ -811,10 +849,10 @@ When the Ritual plugin is attached (see *Plugin-attached rendering*), the number
 
 **On `use` (plugin-attached), reconcile the drawer's STAGED EDITS before locking** — the drawer stages two things to the canonical exploration: the sub-problem `selected` set AND, via "Request adjustment," a refined `problemStatement`. The agent is the sole committer, so at `use` it **commits from the canonical state, never from chat memory** — it re-reads, reconciles, then locks. Mirror the discovery on-proceed pattern (§7.3.1b):
 
-1. Call `get_exploration(exploration_id)` and read the canonical `problemStatement` — the drawer's "Request adjustment" (or a the Ritual web app refine) may have changed it **out of band** since you rendered the frame. Call `get_considerations(exploration_id)` and read `selected`.
-2. If `selected` is a **strict subset** of the rendered sub-problem set (the user de-selected some in the drawer): filter `considerations[]` to `selected`, then run the SAME §5.1a re-derive — `refine_problem_statement` with `considerations` = `selected`, `previous_problem_statement` = the **canonical `problemStatement` from step 1** (so any drawer/the Ritual web app refinement is the BASIS and is preserved through the re-derive), `change_prompt` = `"Narrow scope to these sub-problems: {selected titles}."` — and surface the one-line approved status `Sub-problems narrowed to {N}.`
+1. Call `get_exploration(exploration_id)` and read the canonical `problemStatement` — the drawer's "Request adjustment" (or a the Ritual web app refine) may have changed it **out of band** since you rendered the frame. Call `get_sub_problems(exploration_id)` and read `selected`.
+2. If `selected` is a **strict subset** of the rendered sub-problem set (the user de-selected some in the drawer): filter `considerations[]` to `selected`, then run the SAME §5.1a re-derive — `refine_scope` with `considerations` = `selected`, `previous_problem_statement` = the **canonical `problemStatement` from step 1** (so any drawer/the Ritual web app refinement is the BASIS and is preserved through the re-derive), `change_prompt` = `"Narrow scope to these sub-problems: {selected titles}."` — and surface the one-line approved status `Sub-problems narrowed to {N}.`
 3. Else if the canonical `problemStatement` **differs from the frame you rendered** (the user refined the statement in the drawer without narrowing): adopt the canonical text as the lock text and surface the one-line approved status `Problem statement updated from your edits.`
-4. Else (`selected` is the full set and the statement is unchanged, or `get_considerations` returns `ready:false` — non-plugin path): proceed to Step 6 unchanged.
+4. Else (`selected` is the full set and the statement is unchanged, or `get_sub_problems` returns `ready:false` — non-plugin path): proceed to Step 6 unchanged.
 
 Whatever this resolves to is the `problem_statement` you pass to `lock_exploration_scope` at Step 6 — **the lock ALWAYS commits the canonical text, not your in-context draft.** This adds no gate: `use` is the existing Scope-gate token, and the drawer never advances the flow on its own (the user still replies `use`). The agent stays the sole committer — the drawer only stages; the lock at Step 6 commits the reconciled canonical state.
 
@@ -826,11 +864,11 @@ When the user replies `use`, carry the surviving `considerations[]` — whatever
 
 If the user asks for a refinement:
 
-**Pre-flight (mandatory):** before calling `refine_problem_statement`, run the change pre-flight in `references/change-preflight.md` — restate the change in the user's terms, show the exact `change_prompt` you're about to send, and wait for `yes`. This is a hard pause (even in auto-mode) and fires on every refinement request, including a one-word `tighten`/`broaden`. Do not call the tool until the user confirms.
+**Pre-flight (mandatory):** before calling `refine_scope`, run the change pre-flight in `references/change-preflight.md` — restate the change in the user's terms, show the exact `change_prompt` you're about to send, and wait for `yes`. This is a hard pause (even in auto-mode) and fires on every refinement request, including a one-word `tighten`/`broaden`. Do not call the tool until the user confirms.
 
-Call `refine_problem_statement` with:
+Call `refine_scope` with:
 - `workspace_id`, `raw_input`, `considerations`, `sources` — unchanged. (Same `sources` as the original generate call — keeps the knowledge graph anchor stable.)
-- `template_id` — same rule as Step 4 / Step 5.1: omit unless the user explicitly overrode; if you passed it to the original `generate_problem_statement` call, pass the same value here for symmetry.
+- `template_id` — same rule as Step 4 / Step 5.1: omit unless the user explicitly overrode; if you passed it to the original `generate_scope` call, pass the same value here for symmetry.
 - `previous_problem_statement`: the FULL TEXT of the current best draft
 - `change_prompt`: the user's request verbatim
 - `version`: optional telemetry only; do not show version labels to the user
@@ -848,7 +886,7 @@ When the user locks the frame, store the final text as `problem_statement` for S
 
 **Never render this section's title, its step number, or the word "recon" to the user.** This step produces ZERO user-visible output — no "running…", no "grounding…", no "reading the codebase…". It happens between the problem-frame gate and the first product output; the user sees nothing until the next gate or an approved status line.
 
-**Skip only if the user explicitly asks ("just generate, don't read the code") OR if you're operating outside a codebase context.**
+**Skip only if the user explicitly asks ("just generate, don't read the code") OR if you're operating outside a codebase context — OR if §3.9.5 already grounded this draft (a success receipt from `ritual ground scope`): then this step is done, read nothing, and go straight to Step 6.** This section is the prose path for hosts that cannot run the command.
 
 **When this runs (context-at-create):** AFTER the user locks the problem frame at Step 5 and BEFORE `create_exploration` at Step 6 — the natural "creating your exploration…" beat, so the user never waits on repo reads before seeing product output. Sub-problems (Step 4) were deliberately generated from the ask alone; THIS step is where grounding enters: the `codebase_context_packet` you build here is passed to `create_exploration` as `additional_context`, persisted on the exploration, and injected by the server into discovery-question generation (the questions surface the most important tradeoffs the context implies) and the build-brief fallback. The goal is not to show the user what you found; the goal is to ground downstream generation.
 
@@ -1085,8 +1123,8 @@ Call `lock_exploration_scope` with:
 - `exploration_id` — the draft id you held since Step 0.7 (or Step 1).
 - `problem_statement` — the scope the user locked at Step 5. **Plugin-attached: pass the canonical text reconciled at §5.1b** (re-read from the exploration so an out-of-band drawer/the Ritual web app "Request adjustment" is committed), NOT your in-context draft. When no plugin is attached, this is simply the frame the user accepted.
 - `jtbd` — pass the FINAL job ONLY if the user ADJUSTED it at the Step 0.7 Scope-entry gate, so go-LIVE records the correction; otherwise OMIT (the draft already carries the slug confirmed at the gate). The job still drives the build-brief → code-plan → implement → PR deliverable phase across every surface.
-- `additional_context` — the full `codebase_context_packet` from Step 5.7 (omit only if recon was skipped). Persisted on the exploration; the server injects it into discovery-question generation as evidence (the questions cover the important tradeoffs it implies) and uses it as the build-brief recon fallback — so it survives `/ritual resume`.
-- `sources` — the file-path list from Step 5.7.3.
+- `additional_context` — the full `codebase_context_packet` from Step 5.7 (omit only if recon was skipped, **and omit when §3.9.5 grounded the draft**: the server keeps the verified problem model the harness posted, and sending a packet here would overwrite it). Persisted on the exploration; the server injects it into discovery-question generation as evidence (the questions cover the important tradeoffs it implies) and uses it as the build-brief recon fallback — so it survives `/ritual resume`.
+- `sources` — the file-path list from Step 5.7.3 (omit when §3.9.5 grounded the draft, for the same reason).
 - the repo-key link — pass the same `ritual repo-key --json` object you used at draft create (`repo_key`/`branch`/`repo_key_scheme`/`repo_name`/`is_default_branch`); the server sanitizes it + links nothing on a default branch. (No `name` / `template_id` / `agentic` — the draft already has its name + forked template, and discovery stays per-step; persona is server-resolved.)
 
 The `exploration_id` is unchanged (the draft you held, now LIVE). Move the progress header from Scope to Discovery:
@@ -1173,7 +1211,7 @@ Longest phase because generation is async + the user picks per-Area. (Internally
 
 **Forbidden behaviors:**
 
-- Calling `start_agentic_run` before at least 6 discovery picks have been committed for this exploration (via `accept_discovery_questions_batch`, or `accept_discovery_questions`). There is no skip-discovery exception.
+- Calling `start_discovery_run` before at least 6 discovery picks have been committed for this exploration (via `accept_discovery_questions_batch`, or `accept_discovery_questions`). There is no skip-discovery exception.
 - Silently auto-picking all generated questions and proceeding to Step 8 — e.g. inventing an "engineering-mode default is to run, which skips the per-question picker." There is no such default; the picker is mandatory.
 - **Offering "or I'll default to taking all of them" (or any accept-all fallback), then committing the full set on an ambiguous reply** — e.g. a `proceed` at this gate → `accept_discovery_questions_batch` with all 68 questions → a ~25-min run the user never chose. Accept-all is a legitimate choice **only when the user explicitly asks for it** — it is NEVER the default you offer, and NEVER the fallback. The default you offer + fall back to is always **the suggested 12 rendered on the landing**. An ambiguous reply (`proceed`/`go`/`ok`) at the pick gate means **accept those 12**, not the full set — structurally safe because the 12 are on screen in full.
 - Starting Step 8 — auto-firing the answers (engineering) or rendering the product/design run-mode choice — anywhere in the chat before Step 7.4 has committed the picks.
@@ -1236,9 +1274,11 @@ The user always confirms; nothing is committed without their reply.
 Input aliases for this picker are defined under **Input compatibility** below.
 
 **Record the suggested set before rendering.** Once (a) is chosen, call
-`select_discovery_questions(exploration_id, state_id, question_ids)` with the
-suggested set IN FULL — every id, never a delta, because the call REPLACES the stored
-selection. Nothing is committed by this: no questions are materialized and the step does
+`select_discovery_questions(exploration_id, state_id, picks)` where `picks`
+names every chosen question by position: `[{ area: n, questions: [i, j, …] }, …]`, 1-based,
+in the order `get_discovery_state` listed the Areas and their questions. Pass the suggested
+set IN FULL, never a delta, because the call REPLACES the stored selection. The server
+resolves positions to question ids; never transcribe an id yourself. Nothing is committed by this: no questions are materialized and the step does
 not advance; `accept_discovery_questions_batch` is still the only committer.
 
 Two reasons it is not optional. It makes the set DURABLE, so a resumed build reads the
@@ -1444,7 +1484,7 @@ Question picking · Summary                              {T} picked
 
 **The minimum model — floor 6 HARD, good 15–20 SOFT, no cap:**
 
-- **`commit` with T < 6** → REFUSE (hard floor). *"Pick at least 6 to run discovery — you have {T}, choose {6−T} more,"* then return to the Summary (or the Area they were on). No skip path; do NOT call `accept_discovery_questions_batch` or `start_agentic_run`.
+- **`commit` with T < 6** → REFUSE (hard floor). *"Pick at least 6 to run discovery — you have {T}, choose {6−T} more,"* then return to the Summary (or the Area they were on). No skip path; do NOT call `accept_discovery_questions_batch` or `start_discovery_run`.
 - **`commit` with 6 ≤ T < 15** → allowed. Proceed to § 7.4 after the one-line "good is 15–20" nudge — do NOT re-nag or block.
 - **`commit` with T ≥ 15** → proceed to § 7.4.
 - **An Area number** at the Summary → re-open that Area's questions (picks preserved), then return here.
@@ -1530,9 +1570,10 @@ AFTER the batch call:
    the user picked AI questions in.)
 2. **For each Area that has held custom questions:**
    - if a workspace matter for that name exists → use its id;
-   - if not (a custom-only Area, or a pending new Area) → `create_discovery_matter(exploration_id, name)` first, use the returned id.
+
+   - if not (a custom-only Area, or a pending new Area) → `create_discovery_area(exploration_id, name)` first, use the returned id.
    - then call `add_discovery_question(exploration_id, matter_id, text)` for each held question — **SEQUENTIALLY** (`await` each), never in parallel (same connection-pool caution as the batch).
-3. **For each pending new Area** (from `more`): `create_discovery_matter(...)` then `add_discovery_question(...)` per its questions, sequentially.
+3. **For each pending new Area** (from `more`): `create_discovery_area(...)` then `add_discovery_question(...)` per its questions, sequentially.
 
 One status line for the whole persist step (not one per question):
 
@@ -1541,7 +1582,7 @@ Adding your {M} question(s) across {K} Area(s)…
 ```
 
 Only after all holds are persisted, proceed to anti-goals. The floor (≥6) counts
-custom + AI questions together — never `start_agentic_run` before the held questions are
+custom + AI questions together — never `start_discovery_run` before the held questions are
 written.
 
 ##### 7.5 — Optional: capture out-of-scope items
@@ -1566,9 +1607,16 @@ it's `/ritual build`.**
 
 - **`answerer: 'agent'`** — a repo is bound to this exploration (`repoKey` is
   set, from `prepare_build`). There IS a codebase to ground answers in, so
-  **you answer the picked questions** yourself and `submit_all_answers`.
+  run **`ritual ground answer` from the bound checkout**, validate its saved receipt,
+  then `submit_all_answers` only when all committed questions are answered. Verification
+  uncertainty is handled inside Ritual: retain supported facts and an explicit open
+  point, without asking the user to retry or swap questions. If an execution failure
+  leaves missing answers, reconcile the receipt/saved state and retry only those IDs
+  once automatically. Do not run successful answers again. If recovery cannot finish,
+  report the concrete blocker and ask only for access or input actually required;
+  do not offer routine retry/replacement approval cards or fabricate completed answers.
 - **`answerer: 'server'`** — no repo is bound. There is no codebase to read, so
-  use the **server agentic run** (`start_agentic_run`), which sources answers
+  use the **server agentic run** (`start_discovery_run`), which sources answers
   from the knowledge graph + registered sources.
 
 Read the field; do not judge yourself against it. A previous version asked you
@@ -1578,8 +1626,9 @@ the server path (correct) while announcing it was answering from the codebase
 (false), and nothing could tell the two apart.
 
 **`answerer: 'agent'` is permission, not proof.** It means a repo is bound, not
-that you read it. If recon did not run, say so and answer from what you have —
-never claim code you did not open.
+that answering ran. The repository executor must inspect the bound checkout;
+if that checkout is unavailable, explain the missing access and stop the handoff.
+Never replace repository verification with answers from incomplete chat context.
 
 **The answering contract** (every Ritual surface's skill carries this same block — it is synced from one source, never edited in place):
 
@@ -1592,7 +1641,7 @@ never claim code you did not open.
 
 For `engineering`, `delivery`, and `operations` roles there is **no run confirmation**: the user already chose "generate answers and recommendations" when they proceeded from the discovery pick gate (§ 7.3.1), so a second "ready to run?" prompt is redundant friction. **Auto-proceed with no `run`/`pause` CTA and no wait for a reply.**
 
-**Strict ordering (load-bearing — do NOT skip, reorder, or parallelize):** the run begins **only after the Step 7.4 `accept_discovery_questions_batch` call has RETURNED its response**. That accept is what commits the picks and returns `materialized[]` (the committed question rows + their `id`s); you answer those exact ids. Do NOT call `write_answer_context`, `submit_all_answers`, or `start_agentic_run` before the accept resolves, and never fire them in parallel with it — there is no committed question set to run against until the accept returns. Removing the old `run` gate removed a human turn, NOT this dependency: await the accept, read `materialized[]`, then run. Once you have the accept response, print one non-blocking status line so the hand-off isn't silent, then begin. **Do NOT first narrate the accept outcome** — a line like `12 questions saved across 8 areas.` / `N questions picked` is a forbidden step-outcome leak (`references/render-contract.md`). Go STRAIGHT to the hand-off render below; the accept itself emits nothing:
+**Strict ordering (load-bearing — do NOT skip, reorder, or parallelize):** the run begins **only after the Step 7.4 `accept_discovery_questions_batch` call has RETURNED its response**. That accept is what commits the picks and returns `materialized[]` (the committed question rows + their `id`s); you answer those exact ids. Do NOT call `save_answer_context`, `submit_all_answers`, or `start_discovery_run` before the accept resolves, and never fire them in parallel with it — there is no committed question set to run against until the accept returns. Removing the old `run` gate removed a human turn, NOT this dependency: await the accept, read `materialized[]`, then run. Once you have the accept response, print one non-blocking status line so the hand-off isn't silent, then begin. **Do NOT first narrate the accept outcome** — a line like `12 questions saved across 8 areas.` / `N questions picked` is a forbidden step-outcome leak (`references/render-contract.md`). Go STRAIGHT to the hand-off render below; the accept itself emits nothing:
 
 ```text
 Ritual build
@@ -1603,14 +1652,53 @@ Answering your picked questions, then generating recommendations.
 
 (Match the line to the path you'll actually take: repo-linked → "Answering your picked questions from the codebase…"; fallback → "Ritual is sourcing answers for the picked questions…". Don't claim to answer from code if you're taking the server path.)
 
-**If you're genuinely repo-linked (per the check above), answer the questions yourself** (BYO-answerer; do NOT call `start_agentic_run`):
-1. The Step 7.4 accept (`accept_discovery_questions_batch`) returned `materialized[]` — the committed questions with their row `id`s. (If you didn't keep them, the same ids are what you passed to accept.)
-2. For each saved question, call `write_answer_context(question_id, content)` with an answer grounded in your reading of the codebase — the files you read at Step 5.7, the actual code, real constraints. Answer in PARALLEL where your agent supports it (e.g. one subagent per Area). The content is provisional + provenance-tagged agentic until saved; only the final saved set drives recommendations.
-   - Every answer follows **the answering contract** above (length, prose-not-code, no-secrets). `content` is **markdown**; the web app lifts fenced snippets out of the prose into a collapsed reference beside the answer, and markdown keeps them portable to the `.ritual/` projection.
+**If you're genuinely repo-linked (per the check above), Ritual answers from the repository.**
+Do not write the answers yourself through `save_answer_context`, and do not call
+`start_discovery_run` for this path. A displayed label is not evidence that behavior exists;
+Ritual's repository checks own the answering procedure.
 
-3. When every committed question has answer context, call `submit_all_answers(exploration_id)` — it commits the set and triggers recommendation generation. Then go to the recommendation wait (Step 8.1, agent-answered path).
+1. Await Step 7.4's `accept_discovery_questions_batch` response. Its `materialized[]`
+   contains the saved question IDs. Preserve the accepted set; do not substitute drafts.
+2. From the bound checkout, run:
 
-**Fallback — server answers (no repo / nothing to ground in):** only after the Step 7.4 accept has returned (the run needs the committed question set it produced), call `start_agentic_run` with `scope_type: 'exploration'` + `exploration_id`, then follow the server polling path (8.0 → 8.1).
+   ```text
+   ritual ground answer --exploration <exploration_id>
+   ```
+
+   Keep the configured provider/model. Wait for that command; do not launch parallel
+   host answering, substitute your own answers, or start another command while it runs.
+   Use the product-facing status in `references/render-contract.md`. If the installed CLI
+   lacks this command or configuration is missing, explain the setup needed and stop this
+   handoff rather than bypassing verification. Never invent credentials.
+3. Read the saved receipt and current answer state. The command saves answers but does
+   not submit them. If any committed question remains missing or failed, explain what
+   remains; do not manufacture certainty or submit a partial set. An unresolved product
+   choice is not a missing answer: explain the observed behavior and the choice still
+   to confirm in ordinary English, retaining any proposed default as an assumption.
+   Do not pause discovery to ask the user to choose. Retain timing, usage and partial receipts.
+4. Only when every committed question has a saved answer, call
+   `submit_all_answers(exploration_id)` and use the agent-answered recommendation
+   wait in Step 8.1. Existing user gates are unchanged; this handoff is not another gate.
+
+**Product choices continue into recommendations.** For repository Build, Lite and Readback,
+use the answering contract's stated-assumption path, not its ask-the-person path. The
+answer states what is known, what remains a product choice, and why a proposed default
+is reasonable; it does not claim the user approved that default. Preserve that open choice
+in the saved answer and its structured open/assumption data. Do not hold an otherwise
+complete answer back merely because the repository cannot establish product intent.
+The recommendation that depends on the choice must keep it visible as an open question,
+alongside the proposal and what would change with the alternative. Do not silently settle
+it or create a new discovery choice gate. The existing recommendation review remains
+the place for the user to inspect or resolve it.
+
+For example: “Each sitting starts with three hints. Leaving and sitting again creates a
+new hand and restores them. The code does not establish whether players should be told
+about that reset. For now, the proposed message says ‘No hints left this sitting’; whether
+to explain the reset remains to confirm.” The dependent recommendation carries the open
+question: “Should the Hint message explain that starting a new sitting restores hints?”
+This does not permit fabricated current-behavior claims or skipping verification failures.
+
+**Fallback — server answers (no repo / nothing to ground in):** only after the Step 7.4 accept has returned (the run needs the committed question set it produced), call `start_discovery_run` with `scope_type: 'exploration'` + `exploration_id`, then follow the server polling path (8.0 → 8.1).
 
 For `product`, `design`, or explicitly PRD-style flows where answer review is useful, offer two choices without time estimates (this path uses the SERVER answer engine so the user can review each generated answer — Step 8.5):
 
@@ -1629,11 +1717,11 @@ How do you want to run discovery?
 Reply `1` or `2`.
 ```
 
-If they pick 1, call `start_agentic_run` with `stop_after: 'answers'` and continue to Step 8.5 when it pauses. If they pick 2, call without `stop_after` and continue to Step 9 when complete.
+If they pick 1, call `start_discovery_run` with `stop_after: 'answers'` and continue to Step 8.5 when it pauses. If they pick 2, call without `stop_after` and continue to Step 9 when complete.
 
 ##### 8.0 — "You're unblocked" pre-roll (once server-side work is running)
 
-This pre-roll is for the **rec-generation wait** — fire it once server-side work is running: on the agent-answered path, right after `submit_all_answers` returns (recommendation generation is now queued); on the server fallback, right after `start_agentic_run` returns the run_id. (On the agent-answered path the *answering itself* is your active work — don't show the pre-roll until you've submitted.)
+This pre-roll is for the **rec-generation wait** — fire it once server-side work is running: on the agent-answered path, right after `submit_all_answers` returns (recommendation generation is now queued); on the server fallback, right after `start_discovery_run` returns the run_id. (On the agent-answered path the *answering itself* is your active work — don't show the pre-roll until you've submitted.)
 
 **Lock the product promise BEFORE you enter the polling loop.** Recommendation generation continues server-side; the user is free to step away. The polling loop becomes the agent's job, not the user's obligation.
 
@@ -1691,13 +1779,13 @@ Pick whichever fits the user's flow — they're equivalent in content. Do not in
 - `not_started` / `generating` → **keep polling.** A zero `recommendationCount` here is NORMAL — generation is enqueued/in flight, NEVER a "miss." (Older servers may omit the field; if `recommendationsStatus` is absent, fall back to polling `get_recommendations_preview` until ≥1.)
 - `ready` → recommendations exist. Fetch them (`get_recommendations_preview`) and continue to Step 9.
 - `empty` → generation FINISHED with genuinely zero recs (rare, real terminal state). Surface it plainly — do NOT render a fake Step 9 landing, do NOT re-run.
-- `failed` → generation exhausted its auto-retries (terminal). Surface it with the one-line `recommendationsError` if present, and **offer to retry** — on a `yes`, call `retry_recommendations(exploration_id)` (re-enqueues ONLY rec-gen on the existing answers; status returns to `generating`, resume polling). Do NOT call `start_agentic_run` (that re-answers the whole exploration) and do NOT auto-retry without asking.
+- `failed` → generation exhausted its auto-retries (terminal). Surface it with the one-line `recommendationsError` if present, and **offer to retry** — on a `yes`, call `retry_recommendations(exploration_id)` (re-enqueues ONLY rec-gen on the existing answers; status returns to `generating`, resume polling). Do NOT call `start_discovery_run` (that re-answers the whole exploration) and do NOT auto-retry without asking.
 
 The *only* difference between the two answerer paths — **local coding agent** (you, repo-linked) vs **Ritual's server agentic run** — is how you reach this wait (agent-answered → straight to the status poll; server → poll the run to `COMPLETED` first, then the status). Never render the Step 9 landing, and never call `accept_recommendations`, from anything but `ready`.
 
-**Agent-answered path (default):** you already wrote + `submit_all_answers`'d, so there's no agentic run to poll — go straight to the recommendation wait: poll `get_exploration_status(exploration_id).recommendationsStatus` (a constant ~20s cadence, a "still generating recommendations…" line every ~3 polls) until it reads `ready`, then fetch + continue to Step 9. `generating` → keep polling; `empty` → genuine zero-rec terminal; NEVER render the Step 9 landing or call `accept_recommendations` from anything but `ready`; if 10+ min pass still `generating`, surface it as an anomaly. (Skip the `get_agentic_run` polling below — that's the server-fallback path.)
+**Agent-answered path (default):** you already wrote + `submit_all_answers`'d, so there's no agentic run to poll — go straight to the recommendation wait: poll `get_exploration_status(exploration_id).recommendationsStatus` (a constant ~20s cadence, a "still generating recommendations…" line every ~3 polls) until it reads `ready`, then fetch + continue to Step 9. `generating` → keep polling; `empty` → genuine zero-rec terminal; NEVER render the Step 9 landing or call `accept_recommendations` from anything but `ready`; if 10+ min pass still `generating`, surface it as an anomaly. (Skip the `get_discovery_run` polling below — that's the server-fallback path.)
 
-**Server fallback path** (you called `start_agentic_run`): poll `get_agentic_run(run_id)` using `references/async-polling.md`: **a constant ~20s cadence** (matches the Ritual web app's 20s agentic cadence; never escalate), then a fresh status call. Even if the run takes 2+ minutes the cadence stays constant. Agentic runs CAN exceed 5 min for large explorations — keep the same constant cadence and keep polling; if status is still running past ~10 min, surface it as an anomaly rather than escalating the wait.
+**Server fallback path** (you called `start_discovery_run`): poll `get_discovery_run(run_id)` using `references/async-polling.md`: **a constant ~20s cadence** (matches the Ritual web app's 20s agentic cadence; never escalate), then a fresh status call. Even if the run takes 2+ minutes the cadence stays constant. Agentic runs CAN exceed 5 min for large explorations — keep the same constant cadence and keep polling; if status is still running past ~10 min, surface it as an anomaly rather than escalating the wait.
 
 **On the FIRST poll only** (not every poll), prepend one line that locks the "background execution is default" mental model:
 
@@ -1717,12 +1805,12 @@ terminal, surface it. NEVER render the Step 9 landing — and never call `accept
 from anything but `ready`. If 10+ minutes pass still `generating`, surface that as an anomaly
 instead of proceeding.
 
-**A zero-rec read is NEVER a "generation miss," and re-running is NOT a recovery (load-bearing).** The run reporting `completed` only means *answering* finished — recommendation synthesis is a SEPARATE async job that may still be in flight, so zero rows means **not yet**, never **failed**. Do NOT relabel it a "generation miss" / "the synthesizer came back empty" / "0 recommendations" and act on that: do NOT call `start_agentic_run` again to "regenerate" (the answers are already committed — a re-run re-answers the whole exploration from scratch, burns a full pipeline, and can double-generate), and do NOT propose "routing around" synthesis by building a plan from the raw discovery answers. Just keep polling `get_exploration_status.recommendationsStatus` until `ready` (or `empty` — the rare genuine terminal). The synthesizer is almost never the problem — being early in the async window (`generating`) is. The ONLY escalation, and only after the 10-min ceiling still `generating`, is to surface it as an anomaly and offer `/ritual status` or the web app — never an automatic re-run, never a reroute.
+**A zero-rec read is NEVER a "generation miss," and re-running is NOT a recovery (load-bearing).** The run reporting `completed` only means *answering* finished — recommendation synthesis is a SEPARATE async job that may still be in flight, so zero rows means **not yet**, never **failed**. Do NOT relabel it a "generation miss" / "the synthesizer came back empty" / "0 recommendations" and act on that: do NOT call `start_discovery_run` again to "regenerate" (the answers are already committed — a re-run re-answers the whole exploration from scratch, burns a full pipeline, and can double-generate), and do NOT propose "routing around" synthesis by building a plan from the raw discovery answers. Just keep polling `get_exploration_status.recommendationsStatus` until `ready` (or `empty` — the rare genuine terminal). The synthesizer is almost never the problem — being early in the async window (`generating`) is. The ONLY escalation, and only after the 10-min ceiling still `generating`, is to surface it as an anomaly and offer `/ritual status` or the web app — never an automatic re-run, never a reroute.
 When `status` is `COMPLETED_WITH_ERRORS`: tell the user, then apply the same wait-for-rows rule — partial recommendations may still be useful.
-When `status` is `FAILED`: surface the error message, ask if they want to retry (`start_agentic_run` again with same exploration_id) or stop.
+When `status` is `FAILED`: surface the error message, ask if they want to retry (`start_discovery_run` again with same exploration_id) or stop.
 When `status` is `PAUSED_FOR_REVIEW` (product/design answer-review mode only): continue to Step 8.5.
 
-If user wants to abort mid-flight: `cancel_agentic_run(run_id)`.
+If user wants to abort mid-flight: `cancel_discovery_run(run_id)`.
 
 #### Step 8.5 — Run Agentic Exploration (product/design answer-review mode only)
 
@@ -1791,18 +1879,18 @@ For each question's loop:
 
    - **If "submit":** call `submit_answer({ question_id })`. The question advances to COMPLETED. Move to the next question's Step 8.5 loop iteration.
 
-   - **If "iterate" (any free-text reply):** call `iterate_answer({ consideration_id, message: user_text })`. The answer engine:
+   - **If "iterate" (any free-text reply):** call `refine_answer({ consideration_id, message: user_text })`. The answer engine:
        - Persists the user message in the consideration's chat
        - Generates a new AI response (which is either the next clarifying question OR a recognition that the answer is now complete)
        - The new response is **automatically knowledge graph-aware**: the answer engine reads the exploration's persisted `sources` and pulls in relevant prior decisions + open deferrals when forming the next question
 
      **Loop back to step 2 with the updated state.** Fetch fresh state via `get_answer_state` (the considerations array now reflects the new chat message + AI response), show v_N+1, prompt again. Cap at ~5 iterations per consideration before suggesting "let's submit and move on" — keeps cost bounded.
 
-4. **When ALL questions are submitted:** call `resume_agentic_run({ run_id })`. Pipeline runs Phase 4 (submit all answers — the per-question submits above already advanced individual questions, but submit_all_answers is the canonical batch checkpoint) + Phase 5 (recommendations). Poll as in Step 8. When `status` becomes `COMPLETED`, continue to Step 9.
+4. **When ALL questions are submitted:** call `resume_discovery_run({ run_id })`. Pipeline runs Phase 4 (submit all answers — the per-question submits above already advanced individual questions, but submit_all_answers is the canonical batch checkpoint) + Phase 5 (recommendations). Poll as in Step 8. When `status` becomes `COMPLETED`, continue to Step 9.
 
-**Skip-the-iteration escape hatch:** the user can say "just resume" at any point. Call `resume_agentic_run` immediately. Recs generate from whatever state the answers are in (whether v1 or partially iterated). Equivalent to having picked Mode A from the start, just with the option to iterate later via the web UI.
+**Skip-the-iteration escape hatch:** the user can say "just resume" at any point. Call `resume_discovery_run` immediately. Recs generate from whatever state the answers are in (whether v1 or partially iterated). Equivalent to having picked Mode A from the start, just with the option to iterate later via the web UI.
 
-**Abandon:** `cancel_agentic_run(run_id)`. The exploration stays at `REVIEWING_ANSWERS` — the user can come back later and either resume or start fresh.
+**Abandon:** `cancel_discovery_run(run_id)`. The exploration stays at `REVIEWING_ANSWERS` — the user can come back later and either resume or start fresh.
 
 **Pulse (Step 8 done):** Emit a pulse — decision resolution moved significantly (answers complete, draft recommendations now exist). Render full if this crosses Under-specified → Exploration-safe, else compact.
 
@@ -1813,7 +1901,7 @@ For each question's loop:
 **Always call `get_recommendations` first — the pointer replaces the TEXT, never the call.** On a component surface that call IS the rendering: its result carries the card component and `componentAttached: true`, so skipping it leaves the user staring at a pointer to a panel that was never mounted. There is no ambient drawer holding recs on a component surface; the tool result is the panel.
 
 - **`.ritual/plugin.local.json` `active: true`** (the Ritual board + drawer) → the board already shows recs read-only. Call `get_recommendations` anyway (the gate needs the set), then render `↳ Review recommendations in the Ritual panel, then reply \`proceed\`.` and omit the rail — the board carries live progress.
-- **`get_recommendations` returned `componentAttached: true`** → the cards rendered inline. Keep the rail, suppress the compact landing AND the category walk. Render EXACTLY this:
+- **`get_recommendations` returned `componentAttached: true` AND this host confirms the cards are visible** → use the inline cards. The metadata flag alone is not evidence of a rendered component; on a text-only surface use the compact landing below. Keep the rail, suppress the compact landing AND the category walk. Render EXACTLY this:
 
   ```text
   Ritual build
@@ -1827,7 +1915,15 @@ The non-blocking review still records `reviewedAt`/`reviewedBy` on `proceed`; th
 
 This is the most-read screen in the build flow, and it is a **non-blocking review**. Recommendations are **auto-accepted at generation** (created `approved`); the artifacts that depend on them (requirements, the deliverable doc, and — for developer-function jobs — the build brief) are **already being generated** the moment rec-gen completes. Step 9 is the user's chance to **read and refine** the set, not an accept-or-reject gate. Replying `proceed` records that a human reviewed it (stamps `reviewedAt` / `reviewedBy`) and continues to the build brief — it never blocks, and there is **no reject path here**.
 
-**Landing-first — the same shape as the suggested-12 discovery landing:** the default render is ONE compact screen — `{N} recommendations, ready — across {K} categories`, then ONE numbered line per category listing that category's recommendation **titles only**, comma-joined. The user scans the shape of the set and replies `proceed` immediately. Depth is opt-in via **`expert`**, which re-renders the full detail (every rec's description + `R{N}` ids) where `drill R{N}` / `edit R{N}` become available. The goal is the shortest honest path to the {Deliverable}: scan the compact set, optionally go `expert` to read/refine, proceed. (Mirrors the discovery gate's `proceed`/`expert` split exactly — the compact landing summarizes, `expert` is the path to read or change before committing.)
+**Landing-first:** show the workflow rail with Recommendations active, then one concise task-specific sentence from the agent explaining the proposed recommendations, then total recommendation/category counts, and one bullet per category with its recommendation count. Below the categories, put the environment-correct **Review in Ritual ↗** link and **`show recommendations` in chat** on the SAME line. End with **`proceed` — continue to the {Deliverable}** as the primary CTA. No scope recap, recommendation titles/descriptions, Pulse paragraph, or extra Next heading by default. Opening the workspace and showing the list are optional and never advance the workflow.
+
+**Already-approved continuation:** if the user explicitly approved `proceed` in advance, still render this recommendation landing before continuing. The approval removes the wait, not the workflow rail, introduction, category counts, or review actions. Do not replace the landing with a paragraph narrating that approval. Record the existing review choice and continue only within the user’s authorized scope.
+
+**Introduction:** directly below the workflow rail, write one short sentence grounded in this exploration and its recommendations. For example: “These recommendations focus on making the controls and help text match how the game actually works.” Explain the proposal, not the process; do not repeat the problem statement, narrate tools, claim the brief is ready, or add a Pulse paragraph. Pass it as `intro` to `render_gate`. Older callers without `intro` receive the neutral fallback “These recommendations are based on your discovery answers.”
+
+**Workspace link:** use `explorationUrl` from the current `get_exploration_status` result. It is resolved from that deployment's configured web URL. Never hardcode SaaS or derive a customer web hostname from an auth/API hostname. If the URL is absent, keep `show recommendations` in chat on its own; do not invent a link. Existing servers that omit the field remain usable.
+
+**Readiness:** recommendations ready does NOT imply the brief is ready. The landing makes no brief-readiness claim. On `proceed`, continue the existing status checks and open the actual brief or show its existing generation progress.
 
 **Data source.** Use `get_recommendations(exploration_id)` (the raw array) — the walk shows full per-rec content, so you need the fields a titles-only preview omits:
 
@@ -1843,108 +1939,63 @@ Assign stable `R1..RN` IDs **globally across all categories** in page order (NOT
 - Recommendations are grouped by **category** (the `categoryName` field). They are **NEVER** grouped by `matter` or by `Area` — those are discovery-phase concepts. `matter_id` must never appear in user-facing copy. Anti-pattern observed in agent output: *"44 recs grouped by matter"* — the right framing is *"44 recs across K categories."*
 - Do NOT use "Reasoning chain" / "reasoning_chain" in user-facing copy. The user-visible label is **"Why this"** — a short Problem / Discovery / Tradeoff distillation derived from the `rationale` field, NOT the literal `→` arrow chain (that's the model's internal scratchpad shape).
 
-**Action set — load-bearing.** The compact landing offers exactly **two**:
+**Action set — load-bearing.**
 
-- `proceed` — mark the set reviewed and generate the {Deliverable} (the job's deliverable — render its rail name, e.g. `Service Build Brief`). Available everywhere. (§ 9.3)
-- `expert` — re-render every recommendation in full (description + `R{N}` ids), where you can read, `drill`, or `edit` before proceeding. (§ 9.1a)
+- `proceed` — record the existing human review and continue to the job's deliverable (§ 9.3). Primary CTA; viewing details is never required.
+- `show recommendations` — display the full set in chat, grouped by category (§ 9.1a). Read-only; never marks reviewed, accepts, regenerates, or advances anything. Keep `expert` as an unadvertised compatibility alias for this same view. For existing gate-choice telemetry, normalize either spelling to `gate: recs_review`, `choice: expert`; this never records recommendation review.
+- The Review in Ritual link opens the same exploration without recording a workflow choice.
 
-Inside `expert` (and only there) two more become available:
+Within the expanded list, `drill R{N}` opens one recommendation and `edit R{N} <change>` uses the existing preview-before-apply flow. No reject/drop, comment, pagination, or new approval gate is introduced.
 
-- `drill R{N}` — open ONE recommendation in full: complete description, "Why this", pass criteria. (§ 9.1b)
-- `edit R{N} <your change>` — refine one recommendation: regenerate its title / description / reasoning from a plain-language ask, **preview** the change, then **apply** it. (§ 9.2)
+##### 9.1 — The compact landing: category counts and optional review links
 
-**Do NOT freelance other actions.** There is **no `drop` / reject** (recs are auto-accepted and the review is non-blocking — a rec the user dislikes is refined with `edit` in `expert`, or simply left as-is), **no `comment`**, and **no `next`** (there is no pagination — `expert` already shows everything). Reject invented compounds too (`dedupe`, `accept the survivors`, `merge similar`, `open the admin UI` — all forbidden). If the rec set itself looks wrong (e.g. apparent duplicates), surface the anomaly explicitly and consult `get_recommendation_attestation` (`duplicateTitlePrefixes`) — don't paper over it with an invented action.
+**Zero-rec guard:** only render this landing once normal readiness reads say recommendations are ready and the set is nonempty. Existing generating/empty/failed behavior stays unchanged.
 
-##### 9.1 — The compact landing: titles only, one line per category
-
-**Pulse leads with a VERDICT, never a bare percentage.** `Reasoning Readiness 37%` alone is unreadable — the user cannot tell whether it is a warning or noise. Say what it means and what ignoring it costs (e.g. *"enough to build, two gaps left — the brief will flag them as assumptions rather than settle them"*). Percentages belong in the deliverable, not the gate.
-
-**The artifact, not the effort.** `{N} recommendations, ready` is what the user got; `We've generated {N} recommendations` is Ritual describing its own work.
-
-The rule is about EFFORT-REPORTING, not the pronoun. "We've generated…", "we've analysed…", "we've identified…" all claim credit for work the user did not ask to hear about. Stating a dependency is fine — `{N} things have to be understood before we can recommend what to build` says what has to happen before the next step earns its output, which is information the user needs.
-
-**Keep the noun.** It is a *recommendation* here, in `expert`, in the `R{N}` ids and in every tool name — do NOT rename it to "decision" or anything else in the copy. The domain noun is load-bearing: the moment the screen and the commands use different words, the user has to translate.
-
-**Zero-rec guard (load-bearing):** if `get_recommendations` returns an empty array, do NOT render this landing and do NOT call `accept_recommendations` — you arrived before rec generation finished. Go back to the Step 8 wait-for-rows polling. A "0 recommendations across 0 categories" render is always a bug, never a state to present.
-
-**[USER PAUSE]** Render the COMPACT landing: a one-line lead (`{N} recommendations, ready — across {K} categories`) then ONE numbered line per category — the category name, then its recommendation **titles only**, comma-joined. NO descriptions here (that's `expert`). This is a scan surface: titles carry the signal; `expert` carries the depth. Never omit a category or a rec ("… N more" is forbidden — the compact line lists every title in that category); never add a description line here (that's the wall-of-text failure mode this landing exists to prevent).
+**[USER PAUSE]** Render the following compact layout, substituting the actual job deliverable and terminal in the rail. Show every category; compute each count from its recommendations. Use “recommendation” / “category” for a count of one. Keep the two secondary review actions together, ABOVE the primary `proceed` CTA.
 
 ```text
 Ritual build
 ✓ Scope · ✓ Discovery · ▶ Recommendations · {Deliverable} · Implementation
 
-Scope:
-{one-line compressed scope — ~80-120 chars; truncate at a clause boundary, no ellipsis}
+{one-sentence introduction explaining these recommendations}
 
-{N} recommendations, ready — across {K} categories.
+{N} recommendations across {K} categories
 
-1. {Category name 1}: {title}, {title}, {title}
-2. {Category name 2}: {title}, {title}
-3. {Category name 3}: {title}, {title}, {title}, {title}
+- {Category name 1} — {count} recommendations
+- {Category name 2} — {count} recommendations
 
-Pulse — {one-line verdict}. {what is still open, and what it costs}.
+[Review in Ritual ↗](<{explorationUrl}>) · `show recommendations` in chat
 
-Next
-`proceed` — write the {Deliverable} from all {N}
-`expert` — read every recommendation in full and refine
+`proceed` — continue to the {Deliverable}
 ```
 
-Notes:
+Counts refer to recommendations, never unexplained numbers. No titles, descriptions, R-IDs, scope recap, or routine Pulse paragraph appear here; details belong in the optional expanded list. Only surface a concise unresolved decision separately when it materially affects continuing. Never fabricate brief completion or change the primary action to “write” based on recommendation readiness.
 
-- **Titles only, comma-joined per category line.** No `R{N}` ids and no descriptions on the compact landing — those appear in `expert`. The category numbering (`1.`, `2.`, …) orients the eye; it is NOT an addressable id (you don't act on a category).
-- **Every category, every title.** The compact line for a category lists ALL of its rec titles — never truncate the list with "…".
-- **`proceed` is the primary CTA** — the user never has to enter `expert` to continue.
+##### 9.1a — `show recommendations`: the full list in chat
 
-##### 9.1a — `expert`: every recommendation in full
-
-On `expert`, re-render the SAME set with full detail — every recommendation grouped by category, each with its global `R{N}` id, title, and ONE truncated description line — then wait. This is the fuller view of the same Step 9 gate (the compact landing §9.1 holds the gate's pause); `expert` is not a new decision point, so the proceed-or-refine decision is unchanged — only the level of detail differs.
-
-```text
-Recommendations · expert
-
-{Category name 1}
-  R1  {title} — {description truncated ~90 chars at a word boundary…}
-  R2  {title} — {truncated description…}
-
-{Category name 2}
-  R3  {title} — {truncated description…}
-
-{…every category, every rec, one line each…}
-
-Reply `drill R{N}`, `edit R{N} <change>`, or `proceed` to generate the {Deliverable}.
-```
+On `show recommendations` (or legacy `expert`), render the SAME complete set grouped by category, with stable global `R1..RN` identifiers, each title and a short description. Retain those identifiers when returning from drill/refine; never renumber within each category. This expands the existing review pause; it is not a new decision point and never mutates recommendations, the review mark or workflow state.
 
 ```text
 Ritual build
 ✓ Scope · ✓ Discovery · ▶ Recommendations · {Deliverable} · Implementation
 
-Scope:
-{one-line compressed scope — ~80-120 chars; truncate at a clause boundary, no ellipsis}
-
-{N} recommendations across {K} categories. Scan the set, drill into any,
-or proceed to your {Deliverable}.
-
 {Category name 1}
-  R1  {title} — {description truncated ~90 chars at a word boundary…}
-  R2  {title} — {truncated description…}
+R1 · {title}
+{short description}
+
+R2 · {title}
+{short description}
 
 {Category name 2}
-  R3  {title} — {truncated description…}
-  R4  {title} — {truncated description…}
+R3 · {title}
+{short description}
 
-{…every category, every rec, one line each…}
+{every remaining recommendation, grouped by category}
 
-Pulse: Reasoning Readiness 88% · Context Debt 12% ↓16% (answering discovery dropped it 16%)
-
-A few assumptions are still unverified — the {Deliverable} is what locks them down.
-Reply `drill R1`, `edit R1 <change>`, or `proceed` to generate the {Deliverable}.
+Reply `drill R{N}`, `edit R{N} <change>`, or `proceed` to continue to the {Deliverable}.
 ```
 
-Notes:
-
-- **Global `R{N}` IDs** in page order across categories. The R-ID is how the user references a rec in `drill R{N}` / `edit R{N}`; never restart numbering per category.
-- **Title + one truncated description line per rec** — truncate at a word boundary with `…`. No "Why this" at the landing; that lives in the drill view.
-- **`proceed` is the primary CTA** — the user never has to drill anything to continue.
+“Why this” and pass criteria remain in the single-recommendation drill view. Do not dump raw metadata, confidence scores or internal reasoning traces. All existing refinement and review-recording rules below still apply.
 
 ##### 9.1b — `drill R{N}`: one recommendation in full
 
@@ -1958,7 +2009,7 @@ Recommendations · R{N} — {title}
 Why this: {one-line Problem→Discovery→Tradeoff distillation, plain prose}
 Pass: {acceptance_criteria, one line each — omit the block if empty}
 
-Reply  edit R{N} <your change>   ·   back (all recommendations)   ·   proceed (generate the {Deliverable})
+Reply  edit R{N} <your change>   ·   back (all recommendations)   ·   proceed (continue to the {Deliverable})
 ```
 
 `back` re-renders the landing (§ 9.1, unchanged). Drilling is read-only — nothing advances or persists.
@@ -1968,7 +2019,7 @@ Reply  edit R{N} <your change>   ·   back (all recommendations)   ·   proceed 
 This mirrors the Ritual web app's "Revise → Preview Revision → Apply revision" exactly: the change is **previewed before anything persists**.
 
 1. Resolve `R{N}` → rec UUID from the walk's ID map.
-2. Call `suggest_recommendation_edit({ recommendation_id, instruction: "<the user's ask, verbatim>" })`. This runs an LLM and returns a **transient proposal** — nothing is mutated yet. It carries `id` (the proposal id), `summary` ("what changed"), and `diff[]` of `{ field, before, after }` where `field` is `title`, `description`, or `chain.<idx>`.
+2. Call `preview_recommendation_edit({ recommendation_id, instruction: "<the user's ask, verbatim>" })`. This runs an LLM and returns a **transient proposal** — nothing is mutated yet. It carries `id` (the proposal id), `summary` ("what changed"), and `diff[]` of `{ field, before, after }` where `field` is `title`, `description`, or `chain.<idx>`.
 3. **[USER PAUSE]** Render the preview and wait:
 
 ```text
@@ -2245,17 +2296,16 @@ The repair loop didn't converge. Options:
 
 #### Step 10 — Generate the build brief
 
+Before choosing 10a or 10e, read `get_exploration_status`. If `groundingRunsEnabled === true`
+and this session can run the CLI in the exploration's bound checkout, follow
+`references/grounded-deliverable-flow.md` for this step. That path owns generation and checks;
+do not also run 10a–10b.5. On success return to 10c (implementation jobs) or the file-writing
+part of 10e (other jobs), then the unchanged 10d confirmation. Missing/false capability or
+no local checkout keeps the existing path below. Never infer support from the URL or client name.
+
 **Branch on the job's `terminal` first.** `implement` (every classic build): run 10a–10d below. Any other terminal (`generate-evals`, `execute-plan`, `record-decision`, `investigate`, `deliver`): there is NO Build Brief for this job — skip 10a–10c and run **10e** (fetch the deliverable), then 10d.
 
-The Build Brief is the markdown document the engineer reads RIGHT BEFORE writing code. It bridges accepted recommendations + synthesized requirements with the implementation. Sections:
-
-- **READ THIS FIRST — These Will Block Review If Missing** (RB-numbered table of must-haves)
-- **Goal** (1-2 sentences, restated for code-time clarity)
-- **Required Outcomes** (specific, testable)
-- **Suggested Implementation** (high-level approach + the trade-offs the agent considered)
-- **Codebase Anchors** (file paths + existing patterns to extend, grounded in Step 3's recon)
-- **Previously Deferred — Worth Addressing?** (only present when `sources` overlap prior implementations with open deferrals)
-- **Phase Candidates / Deferrable Items** (what to intentionally punt for v2)
+The Build Brief is the markdown document the engineer reads RIGHT BEFORE writing code. It bridges accepted recommendations + synthesized requirements with the implementation. It opens with **READ THIS FIRST — These Will Block Review If Missing** (the RB-numbered table of must-haves); the sections after it are the ones the server defines for this job, so read them from the generated brief rather than from a list here. Two of them matter to the inputs you pass below: **Codebase Anchors** is grounded in Step 3's recon, and **Previously Deferred — Worth Addressing?** is present only when `sources` overlap prior implementations with open deferrals.
 
 ##### 10a — Call `generate_build_brief`
 
@@ -2264,7 +2314,7 @@ Call `generate_build_brief` with:
 - `exploration_id`
 - `icp` — **omit this.** The brief sources from the requirement set the flow already generated (on accept), whose ICP the server resolves from the exploration's persona/template. Passing a different ICP here forces a redundant requirement regeneration and a slow cold start. The engineering flavor is already baked into the server-resolved template — you do not need to (and should not) pass `TECH_PM` or any other ICP.
 - `recon_context` — the Step 3 `codebase_context_packet` plus any explicit phase/later candidates from discovery. Do not pass raw recon notes. This grounds "Codebase Anchors" in real file paths while keeping agent hypotheses auditable and non-authoritative.
-- `sources` — the **same** file-path array passed to `generate_considerations` and `generate_problem_statement` in Steps 4–5. Critical for knowledge graph consistency: the brief's "Previously Deferred" section only populates when overlapping prior implementations exist on these files.
+- `sources` — the **same** file-path array passed to `generate_sub_problems` and `generate_scope` in Steps 4–5. Critical for knowledge graph consistency: the brief's "Previously Deferred" section only populates when overlapping prior implementations exist on these files.
 
 Returns **immediately** with `status: 'GENERATING'` (synthesis runs in the background — poll per Step 10b) UNLESS it's a cache hit, which returns `status: 'READY'` with the brief markdown directly. The brief is **idempotent on (exploration, icp)** — same recommendation+requirement hashes return the cached READY row. Pass `force: true` only when a prompt-version update requires re-generation (also returns `GENERATING` → poll).
 
@@ -2332,14 +2382,14 @@ If the brief makes no code citations, skip verification persistence and continue
 
    This persists the verification as a durable `BriefReview` row attached to the exploration. Future briefs on overlapping files will inherit the verified facts via `priorContext`; `/ritual lineage` on any cited file will surface this verification.
 
-7. **Reconcile findings with the current brief.** If any RB is `contradicted`, `conflicts`, or `not_found`, preserve the original brief prose and append a **Reconciled against codebase** section plus inline finding markers. Call `save_reconciled_brief(exploration_id, content, source_review_id, reconciliation_summary)` with that deterministically assembled content and the review ID returned by `sync_brief_review`. Use the saved content as the current `BUILD-BRIEF.md` in Step 10c; the server preserves the original in version history. Do not re-synthesize the brief with an LLM. If every RB is `verified` or `unverifiable`, keep the current brief without creating an unchanged version.
+7. **Reconcile findings with the current brief.** If any RB is `contradicted`, `conflicts`, or `not_found`, preserve the original brief prose and append a **Reconciled against codebase** section plus inline finding markers. Call `save_brief_version(exploration_id, content, source_review_id, reconciliation_summary)` with that deterministically assembled content and the review ID returned by `sync_brief_review`. Use the saved content as the current `BUILD-BRIEF.md` in Step 10c; the server preserves the original in version history. Do not re-synthesize the brief with an LLM. If every RB is `verified` or `unverifiable`, keep the current brief without creating an unchanged version.
 
 8. **Print a compact CLI summary** (≤ 8 lines):
 
    ```text
    ✓ Verification complete — saved `BUILD-BRIEF-VERIFICATION.md`.
 
-   Verified: {N}  ·  Contradicted: {M}  ·  Not found: {K}
+   Checked {N + M + K} of {T} citations · Verified: {N}  ·  Contradicted: {M}  ·  Not found: {K}  ·  Need runtime verification: {U}
 
    {If M > 0:}
    Top contradictions:
@@ -2349,7 +2399,9 @@ If the brief makes no code citations, skip verification persistence and continue
    ```
 
    Rules:
-   - **If M = 0 AND K = 0:** print one line, *"✓ Verification complete — N citations checked, all verified. `BUILD-BRIEF-VERIFICATION.md` synced."*
+   - **{T} is every citation the brief makes; {U} is the `unverifiable` verdicts.** The summary always shows the coverage, so a pass that could check five of twelve never reads as complete.
+   - **If M = 0 AND K = 0 AND U = 0:** print one line, *"✓ Verification complete — all {T} citations checked and verified. `BUILD-BRIEF-VERIFICATION.md` synced."*
+   - **If M = 0 AND K = 0 AND U > 0:** print one line, *"✓ Verification complete — {N} of {T} citations verified; {U} need runtime verification. `BUILD-BRIEF-VERIFICATION.md` synced."*
    - **If M > 0:** print up to 3 top contradictions inline; rest are in the file. At the Step 10d gate, surface the contradictions count + note that plan mode will read them via knowledge graph priorContext.
    - **If brief made zero citations:** print *"✓ Verification skipped — the brief makes no specific code citations to verify."* Skip the sync call (nothing to persist). Proceed to Step 10c.
 
@@ -2422,7 +2474,7 @@ When the brief content is in hand (from generate OR polling), **don't dump 300 l
 
    Rules for the summary (CLI Tenets #3, #6):
    - **The two debrief sections ("What changed" / "What this changed for me (your coding agent)") are mandatory and follow refine-flow.md's rules** — that file owns the agent-debrief contract (baseline = the user's original raw ask, 2–3 `»` lines, near-miss framing, calibrated `Net:`); do not restate its rules here, read them there. In this flow the per-requirement one-liners come from the Step 10b.5 verification outcomes instead of a grounding diff — same sections, same voice, so the brief-ready render reads identically whether the brief arrived via build or via refine.
-   - **The `Verification:` line is mandatory** — render the actual numbers from Step 10b.5. If 10b.5 was legitimately skipped (brief made zero specific code citations), render `Verification: n/a — brief made no code citations to verify` instead of omitting the line. The line existing-but-zero is fine; the line being MISSING is a structural signal that 10b.5 was skipped without justification. Reviewing this summary should let the user (and a future SKILL self-check) catch a skipped-verification regression by spotting the missing line. The failure this guards: Step 10b.5 silently skipped on a brief that cites real symbols — exactly the case 10b.5 is supposed to verify.
+   - **The `Verification:` line is mandatory** — for the synchronized harness branch, use the receipt-based line in `references/grounded-deliverable-flow.md`; otherwise render the actual numbers from Step 10b.5. If 10b.5 was legitimately skipped (brief made zero specific code citations), render `Verification: n/a — brief made no code citations to verify` instead of omitting the line. The line existing-but-zero is fine; the line being MISSING is a structural signal that 10b.5 was skipped without justification. Reviewing this summary should let the user (and a future SKILL self-check) catch a skipped-verification regression by spotting the missing line. The failure this guards: Step 10b.5 silently skipped on a brief that cites real symbols — exactly the case 10b.5 is supposed to verify.
    - **Cap RBs and anchors at top 3 each.** Engineers don't read 12-row tables in terminals.
    - **Omit any section that's empty.** No "Previously Deferred: none" lines — just don't render that line. (The `Verification:` line is exempt — it's always rendered, see above.)
    - If `kgContextUsed.implementationCount > 0`, append one line above the goal: *"Grounded in {N} prior implementation{s}: {top match name}, …"* (cite the specific signal).
@@ -2455,7 +2507,7 @@ Ritual build
 
 Build brief ready
 
-`BUILD-BRIEF.md` is on disk. Skim the RBs + anchors, then decide:
+`BUILD-BRIEF.md` is on disk. Skim the requirements and anchors, then decide:
 
   · `proceed` — ready to implement; move to coding
 ```
@@ -2489,6 +2541,8 @@ Every terminal flow ends the same way: Step 11.0's branch safety, commits with t
 
 This step happens **inside** the same `/ritual build` chat if the agent is also the coding agent (Claude Code / Cursor / etc.), or hand-off if the user is implementing themselves.
 
+**Keep the lineage sketchpad from the first edit** (`references/readback-flow.md` § The lineage sketchpad): logged with `ritual readback log` — the brief's problem statement as the request (`--source exploration`), the scope once, a step as you take it, and a decision the moment you make it with the lines behind it (`--files path:start-end`). Silent, never narrated. It is the decision log the developer reviews: a log, not a recollection.
+
 The Implementation phase landing — full rail (the rail moves to Implementation for the first time):
 
 ```text
@@ -2497,13 +2551,11 @@ Ritual build
 
 Implementation
 
-The build brief is on disk. From here, your agent codes against the
-build requirements. Ritual will track commits via the `Ritual-Exploration:` trailer
-so they link back to this exploration when you sync.
+The build brief is on disk. From here, your agent builds against its
+requirements.
 
-Next: I'll do a quick branch / dirty-worktree safety check, then hand
-off to your agent's plan mode so the first pass is a plan grounded
-in BUILD-BRIEF.md — not file edits.
+Next: I'll make sure the branch is safe to build on, then draft a plan
+grounded in BUILD-BRIEF.md for you to review before any file is edited.
 ```
 
 ##### 11.0.0 — Slice the brief into a work-list (load-bearing — [USER PAUSE])
@@ -2517,8 +2569,8 @@ A build brief is rarely one PR. Slice it into an **ordered work-list** — one c
 ```text
 Build brief is on disk. Here's the slice plan:
 
-  1. {slice title} — {one line; RBs: RB-1, RB-4}
-  2. {slice title} — {one line; RBs: RB-2}
+  1. {slice title} — {one line; requirements RB-1, RB-4}
+  2. {slice title} — {one line; requirements RB-2}
   …
 
 Slices 1-{n} land as commits on one branch, then open as one PR — {why that
@@ -2806,7 +2858,7 @@ The current slice is committed and synced. At a PR boundary, complete 11.4–11.
 ✓ Slice {n}/{N} committed — {commit SHA; PR URL if opened}
 
 Remaining:
-  {n+1}. {next slice title} — {RBs}
+  {n+1}. {next slice title} — {requirements}
   …
 
 Reply `next` to plan slice {n+1}, or `pause` to stop.
@@ -3082,7 +3134,7 @@ Or: re-run `/ritual build` in this workspace later — the existing-work check w
 
 ### Tools used
 
-Use the tools named in the executable steps above. `check_anti_goals` validates a proposal against the current anti-goals in one call; `audit_recommendations` starts an audit with a reviewable repair loop.
+Use the tools named in the executable steps above. `audit_anti_goals` validates a proposal against the current anti-goals in one call; `audit_recommendations` starts an audit with a reviewable repair loop.
 
 ### After this subcommand
 

@@ -13,7 +13,7 @@ Same content, two surfaces. Pick whichever fits the user's flow.
 | User is in chat with you and types `/ritual status` | This SKILL subcommand. |
 | User is mid-run and walks away | Tell them about `ritual status --watch` in a separate terminal. Their session can close; the CLI keeps tailing. |
 | User wants to script status / pipe to other tools | Terminal CLI. The SKILL is render-only; the CLI prints to stdout with proper exit codes. |
-| User asks "what's happening?" without typing the slash | Plain English answer — call `get_agentic_run` and respond naturally. Don't gratuitously invoke this subcommand. |
+| User asks "what's happening?" without typing the slash | Plain English answer — call `get_discovery_run` and respond naturally. Don't gratuitously invoke this subcommand. |
 
 ### Steps
 
@@ -24,7 +24,7 @@ The subcommand can be invoked three ways:
 1. **`/ritual status`** (no arg) — auto-resolve the current run from workspace context:
    - If `.ritual/config.json` is bound (i.e. `/ritual init` was run in this repo), load `workspaceId` from there.
    - Call `list_explorations(workspace_id)`, sort by `updatedAt` desc.
-   - For each of the top 5 most-recently-updated, call `list_agentic_runs(exploration_id, status='RUNNING', limit=1)` until one returns a run.
+   - For each of the top 5 most-recently-updated, call `list_discovery_runs(exploration_id, status='RUNNING', limit=1)` until one returns a run.
    - If none has a RUNNING run, fall back to the most-recently-updated exploration with step != `COMPLETED`.
    - If no workspace is bound to the project, ask the user for an exploration id or to run `/ritual init` first.
 
@@ -37,7 +37,7 @@ The subcommand can be invoked three ways:
 Call in parallel:
 
 - `get_exploration(exploration_id)` → exploration name, step, updatedAt, agenticProgress.
-- `get_agentic_run(run_id)` IF a RUNNING run was found — gives live progress + run id + status. Read from the **merged view** the MCP tool returns; never from raw `agentic_jobs.totalQuestions` or `agentic_jobs.progress.steps` directly (those fields are not populated for `full_exploration_v1` runs).
+- `get_discovery_run(run_id)` IF a RUNNING run was found — gives live progress + run id + status. Read from the **merged view** the MCP tool returns; never from raw `agentic_jobs.totalQuestions` or `agentic_jobs.progress.steps` directly (those fields are not populated for `full_exploration_v1` runs).
 
 #### Step S3 — Render the run-first layout
 
@@ -80,15 +80,15 @@ If the user wants to check again, they type `/ritual status` again. The agent re
 Read-tier subset of the build-flow tools:
 
 1. `list_explorations` (auto-resolve)
-2. `list_agentic_runs` (find RUNNING)
+2. `list_discovery_runs` (find RUNNING)
 3. `get_exploration` (S2 — name + step + progress)
-4. `get_agentic_run` (S2 — merged live view)
+4. `get_discovery_run` (S2 — merged live view)
 
 No new MCP tools required. `/ritual status` is a thin orchestration over what already exists.
 
 ### Anti-patterns
 
 - **Don't introduce a "watch" mode inside this SKILL.** The terminal CLI's `--watch` is the live-tail surface. Re-implementing it in chat doubles the affordance and creates polling loops that survive past the user's intent.
-- **Don't render raw `agentic_jobs` fields.** `AgenticJob.totalQuestions` and `progress.steps[*].status` are not written for `full_exploration_v1` runs. Reading them directly produces an "all-pending" snapshot lie. The merged view returned by `get_agentic_run` is the only correct source.
+- **Don't render raw `agentic_jobs` fields.** `AgenticJob.totalQuestions` and `progress.steps[*].status` are not written for `full_exploration_v1` runs. Reading them directly produces an "all-pending" snapshot lie. The merged view returned by `get_discovery_run` is the only correct source.
 - **Don't synthesize ETA from `progress.percent` alone.** Use the question-count math (`completedQuestions / elapsed × remaining`) because it's more accurate than the coarse percent rounded up at major step boundaries.
-- **Don't gratuitously invoke this subcommand.** If the user asks "what's happening?" without typing `/ritual status`, just answer in plain English using `get_agentic_run`. The slash-command is for explicit status snapshots, not for every progress question.
+- **Don't gratuitously invoke this subcommand.** If the user asks "what's happening?" without typing `/ritual status`, just answer in plain English using `get_discovery_run`. The slash-command is for explicit status snapshots, not for every progress question.

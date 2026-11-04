@@ -14,7 +14,7 @@ Output: a per-file timeline of decisions + deferrals + the explorations they cam
 
 When **not** to use:
 - The user wants to start a new exploration → that's `/ritual build`.
-- The user wants a workspace-wide tour (no specific files in mind) → just ask the agent in plain English; the codebase + knowledge graph are reachable via the standard MCP read tools (`list_explorations`, `query_knowledge_graph`, etc.).
+- The user wants a workspace-wide tour (no specific files in mind) → just ask the agent in plain English; the codebase + knowledge graph are reachable via the standard MCP read tools (`list_explorations`, `get_file_lineage`, etc.).
 
 ### Input shapes
 
@@ -49,7 +49,7 @@ If the list ends up empty (e.g. directory glob matched nothing, or the user's pa
 
 #### Step L2 — Query the knowledge graph
 
-Call `query_knowledge_graph(workspace_id, sources=[paths])`. This is the same tool `/ritual build`'s Steps 4 / 5 / 10 use for knowledge graph injection — the difference here is the user-facing output is the QUERY RESULT, not silent priorContext.
+Call `get_file_lineage(workspace_id, sources=[paths])`. This is the same tool `/ritual build`'s Steps 4 / 5 / 10 use for knowledge graph injection — the difference here is the user-facing output is the QUERY RESULT, not silent priorContext.
 
 The response shape includes:
 - `decisions[]` — each with `area`, `choice`, `sourceRecommendationId`, `recommendationStatusAtImplementation`, `relatedFiles[]`, `createdAt`, `explorationId`, `explorationName`, `prNumber`/`prUrl` (from the linked `ImplementationRecord`)
@@ -132,14 +132,14 @@ End with one cheap call-to-action. The right action depends on what the lineage 
 
 Single-tool subcommand:
 
-1. `query_knowledge_graph` (Step L2 — the whole flow hangs on this)
+1. `get_file_lineage` (Step L2 — the whole flow hangs on this)
 2. Agent filesystem tools (`Glob`, `Read`) for resolving directory inputs / pasted-code inputs in Step L1.
 
 Optional onward calls if the user pivots to action (Step L4):
 - `generate_build_brief` if they want the full brief with deferrals surfaced
 - `get_exploration` if they want to drill into one of the source explorations
 
-No new MCP tools required. `/ritual lineage` is a thin formatter over `query_knowledge_graph`.
+No new MCP tools required. `/ritual lineage` is a thin formatter over `get_file_lineage`.
 
 ### Relationship to `/ritual build`'s priorContext block
 

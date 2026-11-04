@@ -16,6 +16,10 @@
  * obscurity, not secrecy, and only meant to be.
  *
  *   node scripts/check-public-artifact-leaks.mjs <dir> [--no-gitleaks] [--gitleaks-config <file>]
+ *   node scripts/check-public-artifact-leaks.mjs <dir> --source-maps-only
+ *
+ * --source-maps-only runs the source-map rules alone, without gitleaks: the web
+ * builds call it on their output, which legitimately names environment hosts.
  *
  * Exits 1 on any finding (from either scan), 2 on a usage or setup error.
  */
@@ -100,7 +104,22 @@ export const RULES = [
     keep: (m) => !PUBLIC_HOSTS.has(m.toLowerCase()),
     why: 'only the public product hosts may ship; environment and tenant hosts are internal',
   },
+  // The two source-map patterns are assembled from pieces: this file ships inside a public
+  // repo that runs it over itself, and the literal strings would be findings.
+  {
+    id: 'source-map-ref',
+    re: new RegExp(`(?:\\/\\/|\\/\\*)\\s*[#@]\\s*source${'Mapping'}URL=`, 'g'),
+    why: 'a compiled file that names its source map invites a request for the original source',
+  },
+  {
+    id: 'source-map-content',
+    re: new RegExp(`"sources${'Content'}"\\s*:`, 'g'),
+    why: 'an embedded source map carries the original source verbatim',
+  },
 ];
+
+/** A shipped source map is a finding whatever it holds: its names and paths are the source tree's. */
+const SOURCE_MAP_EXT = '.map';
 
 const HASH_WHY = {
   'team-name': "a team member's name does not belong in a public artifact",
@@ -228,6 +247,18 @@ export function scanDir(root) {
   const findings = [];
   let files = 0;
   for (const path of walk(root)) {
+    if (extname(path).toLowerCase() === SOURCE_MAP_EXT) {
+      files++;
+      findings.push({
+        file: relative(root, path),
+        rule: 'source-map-file',
+        line: 1,
+        col: 1,
+        text: relative(root, path),
+        why: 'source maps never ship in a public artifact',
+      });
+      continue;
+    }
     if (statSync(path).size > MAX_BYTES) continue;
     const buf = readFileSync(path);
     if (buf.subarray(0, 8000).includes(0)) continue;
@@ -265,18 +296,23 @@ function main(argv) {
     const i = args.indexOf(flag);
     return i === -1 ? undefined : args.splice(i, 2)[1];
   };
-  const noGitleaks = args.includes('--no-gitleaks');
+  const mapsOnly = args.includes('--source-maps-only');
+  const noGitleaks = mapsOnly || args.includes('--no-gitleaks');
   const configArg = take('--gitleaks-config');
   const dirArg = args.find((a) => !a.startsWith('--'));
   if (!dirArg || !existsSync(dirArg) || !statSync(dirArg).isDirectory()) {
     console.error(
-      'usage: check-public-artifact-leaks.mjs <dir> [--no-gitleaks] [--gitleaks-config <file>]',
+      'usage: check-public-artifact-leaks.mjs <dir> [--no-gitleaks] [--gitleaks-config <file>] [--source-maps-only]',
     );
     process.exit(2);
   }
   const root = resolve(dirArg);
 
-  const { files, findings } = scanDir(root);
+  const scanned = scanDir(root);
+  const files = scanned.files;
+  const findings = mapsOnly
+    ? scanned.findings.filter((f) => f.rule.startsWith('source-map'))
+    : scanned.findings;
   for (const f of findings)
     console.error(`${f.file}:${f.line}:${f.col}  ${f.rule}  "${f.text}"  — ${f.why}`);
 
@@ -297,7 +333,7 @@ function main(argv) {
     process.exit(1);
   }
   process.stdout.write(
-    `✓ ${dirArg}: ${files} file(s) clean${noGitleaks ? ' (pattern scan only)' : ', gitleaks clean'}.\n`,
+    `✓ ${dirArg}: ${files} file(s) clean${mapsOnly ? ' of source maps' : noGitleaks ? ' (pattern scan only)' : ', gitleaks clean'}.\n`,
   );
 }
 

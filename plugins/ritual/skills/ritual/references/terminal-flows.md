@@ -52,6 +52,7 @@ The gate's shape is fixed — rail, `{Deliverable} ready`, the file line, one `p
 | `record-decision` | `proceed` — record it in the repo and open the PR |
 | `investigate` | `proceed` — run the investigation and confirm the root cause |
 | `deliver` | `proceed` — close the build; the document stays local · `keep` — commit it to the repo's docs first, then close |
+| `settle` | none — readback is not available from the agent yet (see Settle below) |
 
 The file line reads `` `{DELIVERABLE}.md` is on disk. Skim the <what to skim>, then decide: `` with
 `cases, graders and thresholds` / `steps, checkpoints and rollback` / `options and the decision` /
@@ -143,7 +144,7 @@ Next: a quick branch / dirty-worktree safety check, then step 1.
 2. **Per step, in order:** implement the step; run its verification exactly as written; report the
    check's result against its bar. Pass → commit that step (11.3) and sync it (Step 12) like an
    implementation slice. Fail → run the step's rollback, report what was seen, and stop: the plan
-   needs the user, not a workaround.
+   needs the user's decision before anything else changes.
 3. **[USER PAUSE] before the next step** whenever the plan names a soak time or a go/no-go, and
    ALWAYS before the step the plan marks as the point of no return. Render the checkpoint state and
    the next step's change, then wait for `go` / `pause`.
@@ -272,3 +273,9 @@ its staging copy. `keep` first commits it where this repo keeps its docs (`docs/
 suffixed with the exploration slug when that name is taken), attribution header first, on a branch
 per 11.0 with the `Ritual-Exploration:` trailer (11.3) — then Step 13. No PR is opened here; Step 13
 offers it like any other commit.
+
+## Settle (`settle`)
+
+The terminal of a `readback-pr` job. Reading back a pull request is not available from the
+agent yet, so no flow runs here: follow `references/readback-flow.md`, which says so and points
+the developer to the Ritual web app.

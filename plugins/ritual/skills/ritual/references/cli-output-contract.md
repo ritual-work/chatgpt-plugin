@@ -217,7 +217,7 @@ Canonical destinations (use these; don't improvise):
 
 | Stage              | Active during…                                                                 |
 |--------------------|--------------------------------------------------------------------------------|
-| `Scope`            | Opens at the Step 0.7 Scope-entry gate — server-side classification of the user's raw ask (`prepare_build`, which also auto-resolves the workspace + creates the draft; a correction re-calls `classify_work_item`) + the user's confirmation of what they're building. Then problem frame + sub-problem generation/selection, until scope is locked; the silent grounding recon runs at the lock→create boundary |
+| `Scope`            | Opens at the Step 0.7 Scope-entry gate — server-side classification of the user's raw ask (`prepare_build`, which also auto-resolves the workspace + creates the draft; a correction re-calls `classify_request`) + the user's confirmation of what they're building. Then problem frame + sub-problem generation/selection, until scope is locked; the silent grounding recon runs at the lock→create boundary |
 | `Discovery`        | Exploration creation, discovery questions, answers, question picking, answer review |
 | `Recommendations`  | Recommendation generation + review                                              |
 | `{Deliverable}`    | **Named for the build's deliverable** — the `deliverableTemplate` returned at the Scope-entry gate (e.g. `Launch Brief`, `PRD`, `Service Build Brief`; `Build brief` for the generic `build-feature`). Covers requirements + deliverable generation/review. |
@@ -381,10 +381,10 @@ When showing high-leverage candidates, recommendations, lineage events, or other
 {Short description wrapped as a paragraph.}
 
 Why high-leverage:
-{Specific signal, RB, prior decision, or open deferral.}
+{Specific signal, requirement, prior decision, or open deferral.}
 
 Touches:
-{explorations, PRs, files, RBs}
+{explorations, PRs, files, requirements}
 ```
 
 Use blank lines between items. Do not rely on terminal auto-wrap to make dense prose readable.

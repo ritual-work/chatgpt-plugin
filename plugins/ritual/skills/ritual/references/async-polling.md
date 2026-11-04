@@ -16,7 +16,8 @@ Hosts differ in whether they let you idle at all, and a host that allows it toda
 refuse it tomorrow. So this contract does not name a wait mechanism or a duration.
 
 - **If your host offers a wait primitive, use a SHORT constant one** between polls.
-- **If your host refuses to let you idle, just take the next turn and call the status tool again.** That is a correct poll loop, not a workaround — turn latency already paces it, and a status read is cheap.
+- **Never run a shell `sleep` to wait.** Hosts refuse it, and a refused command is a wasted turn and a recorded error. Poll by taking the next turn and calling the status tool again.
+- **If your host refuses to let you idle, just take the next turn and call the status tool again.** That is a correct poll loop: turn latency already paces it, and a status read is cheap.
 - **Never manufacture a wait out of a condition nothing will satisfy.** A loop spinning on a sentinel file that nothing will ever create does not wait for the operation — it waits for a timeout, and it never exits on its own. Poll the status tool instead. (`ritual status --watch` does follow a run from a shell, but it is a live dashboard for the USER to read in their own terminal — it redraws in place and emits no machine-readable state, so it is not a predicate to build a loop around.)
 - **Never chain or inflate waits to get around a host that blocked one.** If a wait is refused, poll without it.
 
@@ -60,7 +61,7 @@ they are not interchangeable. Poll the tool named here, never a proxy for it.
 | Operation | Poll | Cadence | Terminal states |
 | --- | --- | --- | --- |
 | Discovery generation | `get_discovery_state(exploration_id)` | ~10s | `ready: true` · `stalled` |
-| Answering — server agentic run | `get_agentic_run(run_id)` | ~20s | `COMPLETED` · `FAILED` · `CANCELLED` |
+| Answering — server agentic run | `get_discovery_run(run_id)` | ~20s | `COMPLETED` · `FAILED` · `CANCELLED` |
 | Recommendations | `get_exploration_status(exploration_id).recommendationsStatus`, or `get_recommendations` — both carry it | ~20s | `ready` · `empty` · `failed` |
 | Requirement set | `get_requirement_set_status(exploration_id)` | ~5s | `READY` · `FAILED` |
 | Build brief | `get_build_brief_status(exploration_id, icp)` | ~5s | `READY` · `FAILED` |
@@ -80,6 +81,6 @@ If a write/generate call times out locally but server-side work may still be run
 
 - `get_requirement_set_status` after requirement generation
 - `get_build_brief_status` after build brief generation
-- `get_agentic_run` after agentic run start/resume
+- `get_discovery_run` after agentic run start/resume
 
 Regenerate only when status proves work did not start, failed, or the user explicitly requests a fresh roll.

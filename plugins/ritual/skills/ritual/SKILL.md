@@ -1,129 +1,62 @@
 ---
 name: ritual-build
-description: "Use when an engineer wants a coding agent to plan or build a feature, refactor, or implementation-heavy change that depends on context the agent can't infer on its own — strategic intent, constraints, prior decisions, and trade-offs that live in the user's head. Ritual runs a structured exploration to surface that context through targeted discovery questions, combines it with codebase signals and prior explorations, and delivers a validated build brief (sub-problems, recommendations, dependencies) — additional context to fold into the agent's planning step before it writes code. Prefer this over jumping straight to implementation when the problem is ambiguous, cross-cutting, or has non-obvious constraints. Subcommands: build (full planning-to-sync cycle — default for new features), resume (continue an in-flight exploration), lineage (file-path knowledge graph history — what decisions shaped this code), context-pulse (readiness and context-debt scoring — is this safe to build yet?)."
-stamp: 143eb64464a6
+description: "Use when an engineer wants a coding agent to plan or build a feature, refactor, or implementation-heavy change that depends on context the agent has not been given — strategic intent, constraints, prior decisions, and trade-offs that live with the people who hold them; the agent can only infer correctly once it has received that context. Ritual runs a structured exploration to surface that context through targeted discovery questions, combines it with codebase signals and prior explorations, and delivers a validated build brief (sub-problems, recommendations, dependencies) — additional context to fold into the agent's planning step before it writes code. Prefer this over jumping straight to implementation when the problem is ambiguous, cross-cutting, or has non-obvious constraints. Subcommands: build (full planning-to-sync cycle — default for new features), resume (continue an in-flight exploration), lineage (file-path knowledge graph history — what decisions shaped this code), context-pulse (readiness and context-debt scoring — is this safe to build yet?), readback (assess repository implementation against discovery recommendations and produce a checked recommended brief)."
+stamp: b477d6027b83
 channel: chatgpt-plugin
 ---
 
 # /ritual
 
-Top-level dispatcher for Ritual coding-agent workflows. Works with any coding agent connected to the Ritual MCP — v0, Lovable, Cursor, Claude Code, Codex, Kiro, and others. Some steps use local capabilities (filesystem, git, shell) when your agent has them, and degrade gracefully to MCP-only when it doesn't.
+Ritual's coding-agent workflows: discover the context a build depends on, turn it into a build brief, implement from it, and read the result back before the pull request opens. Works with any coding agent connected to the Ritual MCP (v0, Lovable, Cursor, Claude Code, Codex, Kiro and others). Steps that need the filesystem, git or a shell run when the agent has them and are skipped otherwise.
 
-## Always apply
+## When to bring Ritual up
 
-Before executing any subcommand, read and follow:
+Ritual puts the context the agent has not been given in front of it before code is written: intent, constraints, prior decisions and trade-offs, held by the people who made them. Whether the agent believes it could infer them from the repository is not the test; inference is only correct once that context has been received.
 
-- `references/cli-output-contract.md` — agent output, vocabulary, readability, pause policy
-- `references/async-polling.md` — harness-safe polling and timeout recovery
-- `references/change-preflight.md` — restate + confirm before any free-text change/add tool call (refine sub-problems, reframe scope, add anti-goal); hard pause, even in auto-mode
+Offer discovery when missing intent, constraints or prior decisions could change what gets built: an ambiguous ask, a change that cuts across systems, a product or workflow choice the code does not record. Offer it once, in one line: `/ritual build "<their ask>"` to discover first, or build now and `/ritual readback` before the PR opens. A small, mechanical edit needs no offer. The user decides; if they decline or ask for ordinary coding, use the host's own tools and do not ask again for that task.
 
-**When the user corrects you, record it (load-bearing).** The moment any of these
-happens, call `record_correction`, then carry on with the work:
+Installing Ritual makes these workflows available. A repository follows one only when the user asks for it or has turned on discovery routing there.
 
-- the user contradicts something you asserted
-- the user says a topic or direction is out of scope
-- the user repeats an instruction they already gave
-- the user asks whether you are sure, and you then go and check
-- you notice yourself that something you stated was wrong
+## Commands
 
-**Record it even when you turn out to be right** — a claim that survives a
-challenge means you asserted it without showing your evidence, and that is worth
-knowing. Trigger on what the user SAID, never on whether they seem annoyed: a
-person can be short about a slow build or a real bug, and neither is drift.
+An explicit `/ritual <command> …` loads that command's reference and follows it from its entry. `/ritual <anything else>` is `build`, with the whole argument as the problem. Load only the references a flow asks for.
 
-`why_it_happened` is what earns the call. Reach for the habit, not the artifact:
-*"I answered from a summary instead of reading the source it summarised"* travels
-to the next build; *"that doc was stale"* is about one file.
-
-This is telemetry — it returns at once and changes nothing. Never announce it,
-never apologise for the correction, and never let it interrupt the work: fix the
-thing, say what changed in a sentence, keep going. If it errors, ignore the error.
-
-**Ground before you claim (load-bearing).** An exploration's current state — its recommendation count/status, step, requirement/brief status — is **live truth you read, never recall**. Before stating any of it: if unsure *which* exploration, call `list_explorations` (the compact roster) to fix identity by seeing them side by side; before asserting *what's in* one, call `get_exploration_status` (the cheap status card). Memory and prior turns are authoritative only for identity (which exploration, its title); the graph is authoritative for state. Never assert a recommendation count or status from memory, a session summary, or a stale read — that's how sibling explorations get conflated and "0 recs" gets claimed on an exploration that has many.
-
-**Skill freshness (once per session, silent unless stale):** this file's frontmatter may carry a
-`stamp:` value, a `cli_version:` value and a `channel:` value (all injected when the bundle was
-built — absent on dev/source copies). On the FIRST `ping` of a session, pass the stamp
-as `skill_stamp` and, when present, the `cli_version:` value as `cli_version` and the `channel:`
-value as `skill_channel`. This is a silent provenance handshake: it lets the server record which
-skill content, producing CLI and delivery channel is driving the session, so support can later tell
-a stale-skill issue from an old-CLI issue from a current-code bug. If the response says `skillFreshness: "stale"`, say once — no pause, then continue with the current flow — "A newer Ritual skill is available. Run `codex plugin marketplace upgrade`, then `codex plugin add ritual@ritual`, and restart to pick it up." No stamp, or `in-sync`/`unknown` → say nothing. Never block on this.
-
-**Ritual tools not callable (load-bearing).** If Ritual tools are unavailable, check the host's connection status before diagnosing the cause. Say "Ritual's tools are unavailable in this session." If authentication is required, use the host's supported authentication flow. If the connection is missing, disabled, or unreachable, report that condition and follow the host's setup or connection guidance. If the cause cannot be determined, say so. If you cannot inspect connection status directly, have the user open the host's MCP connection settings (in Claude Code, `/mcp`) and report the status for Ritual. Follow the authentication action offered there if authentication is required. For a configured Codex CLI connection named `ritual` that requires login, use `codex mcp login ritual --oauth-client-registration cimd --scopes openid,profile,email,offline_access`. Do not ask the user to resend their request or prescribe reinstalling without evidence. Resume the requested flow when tools are callable; do not fabricate results or repeatedly retry an unavailable connection.
-
-## Contract strength — load-bearing for all subcommands
-
-Every section in this SKILL or its reference files labeled **load-bearing**, **forbidden behavior**, **anti-pattern**, **rendering contract**, or **fire-on-trigger** is **contract-strength**, not guidance.
-
-Follow the applicable flow's required transitions and decision points, subject to higher-priority host instructions and the user's authorization. Do not skip, combine, or reorder required steps for convenience, speed, or because the answer appears obvious. Preview-before-apply and explicit decision gates remain required. The designated authoritative reference takes precedence over duplicated examples or summaries. If applicable skill instructions conflict and their precedence does not resolve the conflict, stop before the affected action, explain the conflict, and ask for the decision needed to proceed.
-
-**Control language is internal (load-bearing).** Use product vocabulary in normal output. Explain pauses in terms of the user's decision and what follows it. Report connection failures when they block the task. When explaining a real constraint or answering a direct question, identify the relevant instruction plainly.
-
-**One gate per turn (load-bearing).** Render one applicable decision gate, end the turn, and wait for the user's reply before continuing. Do not batch gates into one response, pre-answer later gates, or continue through a gate because all inputs are already known. Read the referenced section before executing each step; it owns the rendering and options. For Lite only, `references/lite-flow.md` § Global lite rules and § The only human touchpoints in lite define which gates auto-resolve. Its § Autonomous worktree mode additionally replaces entry and those two touchpoints when `--worktree` is present. These specific exceptions do not authorize skipping gates in other modes.
-
-Contract-strength rule sections currently in force (non-exhaustive):
-
-- `references/build-flow.md` **Step 7 transition lock + § 7.3 picker contract** — HARD. Render the discovery picker exactly as § 7.3 specifies (its shape, option tokens, and minimums — do not improvise it); commit picks via `accept_discovery_questions_batch` (one call across all Areas, never parallel per-Area) before `start_agentic_run`; use the sequential unavailable-batch fallback only as § 7.4 specifies.
-- `references/build-flow.md` **Step 9 recommendation review** — HARD. Follow its landing, expert review, and preview-before-apply rules.
-- `references/resume-flow.md` **§ R2 picker rendering** — HARD. Render exactly as that section specifies.
-- `references/refine-flow.md` **§ Step 5.5 push-back, including "Every later brief edit pushes back the same way"** — HARD, all flows. Any user-requested edit you make to the local brief file is followed by the push-back that section defines, so Ritual's copy never silently forks from what the user is reading.
-
-When you encounter a rule labeled with any of the marker words above, treat it the same way you'd treat a unit-test assertion: violating it is a regression, not a stylistic choice.
-
-## Routing
-
-Parse the first token of the argument:
-
-| First token | Route to | One-liner |
+| Command | Reference | What it does |
 |---|---|---|
-| `build` | `references/build-flow.md` | Free-form problem → recommendations → build brief → code → sync. The full cycle. |
-| `refine` | `references/refine-flow.md` | Re-ground your build brief against the current codebase and sharpen it. |
-| `lite` | `references/lite-flow.md` | Same pipeline as `build`, run fast/unattended — smaller discovery surface, fewer pauses (only the job+persona front gate and a non-blocking rec review). Use for small/well-scoped dev work, or when the coding agent triages minimal discovery. |
-| `resume` | `references/resume-flow.md` | "Pick up where I left off." Lists in-flight explorations with state badges and jumps to the right step. |
-| `lineage` | `references/lineage-flow.md` | Paste a file path (or set of paths); see every prior exploration / decision / deferral that touched those files. |
-| `context-pulse` | `references/context-pulse-flow.md` | Score readiness / context debt for a feature ask or exploration. Can seed a `CONTEXT-<feature>.md` file with relevant codebase + knowledge graph context that `/ritual build` picks up automatically. Also surfaces inline during build so the user watches debt drop. |
-| `status` | `references/status-flow.md` | Read-only mirror of the `ritual status` CLI command (CLI 0.7.14+) for a quick run-progress check inside the agent session. Calls `get_agentic_run` + renders the same run-first layout the CLI uses. (Most useful when your agent runs alongside the Ritual CLI; harmless elsewhere.) |
-| `begin` | `references/begin-flow.md` | Execute an accepted build brief. Resolves the existing exploration, confirms the brief, then runs the implementation phase (build-flow.md Step 11+) and syncs. |
-| `feedback` | `references/feedback-flow.md` | Review an existing exploration's recommendations, post feedback as attributed comments (`add_recommendation_comment` / `list_recommendation_comments`), and revise the set from an explicit selection (`revise_recommendation_set` → `get_recommendation_revision` → user-approved `apply_recommendation_revision`). Preview-first: generation changes nothing live. |
+| `build` | `references/build-flow.md` | Problem → discovery → recommendations → build brief → implementation → sync. The default. |
+| `lite` | `references/lite-flow.md` | The build pipeline with fewer pauses, for small, well-scoped work. |
+| `begin` | `references/begin-flow.md` | Implement an accepted build brief. |
+| `refine` | `references/refine-flow.md` | Update a build brief against the current code. |
+| `resume` | `references/resume-flow.md` | Continue an in-flight exploration. |
+| `readback` | `references/readback-flow.md` | Repository readback: discovery, harness assessment of recommendation coverage, and a checked recommended brief; web fallback without repository access. | 
+| `feedback` | `references/feedback-flow.md` | Comment on an exploration's recommendations and revise the set from an explicit selection. |
+| `lineage` | `references/lineage-flow.md` | For a file path, every prior exploration, decision and deferral that touched it. |
+| `context-pulse` | `references/context-pulse-flow.md` | Score how ready a feature ask is to build and what context is still missing. |
+| `status` | `references/status-flow.md` | Progress of the current run. |
 
-| (anything else, OR no subcommand) | default to `build` and treat the entire argument as the problem statement | |
+A plain question about an exploration is not a command. Answer it with the matching tool and do not invent subcommands:
 
-Expose only the routes in the table. Handle other requests in plain language using available tools. The installed slash menu may expose a subset of these dispatcher routes.
-
-## Routing behavior
-
-Use the routing table above as the route map. If the first token matches a row, load its reference and execute its entry instructions. Otherwise use `build` and treat the full argument as the problem statement. Load additional references only as required by that flow.
-
-- `references/scoring-fallback.md` — only if `score_context_pulse` is unavailable or errors.
-
-## Asks that don't map to a subcommand
-
-When the user says things like *"what's the status of exp-X?"*, *"show me the recs on exp-Y"*, or *"kick off the agentic run on exp-Z"* — those don't need a dedicated command. Just call the MCP tool directly:
-
-| User asks for… | Call this MCP tool |
+| Question | Tool |
 |---|---|
-| Status of one exploration | `get_exploration_status(exploration_id)` |
-| Status across many explorations | `list_explorations(workspace_id)` (returns state badges) |
-| The recommendations on an exploration | `get_recommendations(exploration_id)` |
-| Kick off / re-run the agentic pipeline | `start_agentic_run(exploration_id, …)` |
-| Did anyone implement something on these files? | `query_knowledge_graph(sources=[…])` — same plumbing as `/ritual lineage` |
+| Status of one exploration | `get_exploration_status` |
+| Status across explorations | `list_explorations` |
+| Its recommendations | `get_recommendations` |
+| Start or re-run the pipeline | `start_discovery_run` |
+| What shaped these files | `get_file_lineage` |
 
-Use the available tool that matches the request; do not invent additional slash commands.
+## Rules that hold in every command
 
----
+`references/session-rules.md` owns the detail; read it once per session, with `references/cli-output-contract.md`, `references/async-polling.md` and `references/change-preflight.md`. In short:
 
-## Before this skill is installed — bootstrap context
+- Follow each flow's steps and decision points in order. Present one decision at a time, end the turn, and wait for the reply. Do not merge, skip or pre-answer decisions, even when the host runs in auto-accept mode. Lite's reference names the decisions it resolves itself.
+- Check an exploration's current state with its tool before reporting it; never report it from memory.
+- Restate and confirm before any tool call that changes an exploration's wording or scope.
+- After editing a local build brief, sync the change to Ritual.
+- When the user corrects you, record it with `record_correction` and carry on.
+- Lead with the result or the decision needed, give the next action and only the context needed to take it. Use product vocabulary; never name tools, steps or internal state in what the user sees. Preparation is silent: reading these files, loading tools and calling the entry tool produce no output, so the first thing the user sees is the first gate or the answer, never a line about starting or loading.
+- If Ritual's tools are unavailable, say so, check the host's connection status, and resume when they are callable.
+- The host's own session, transcript and configuration files are never inputs. Read the repository, these references and the tool results, nothing else.
 
-This SKILL only governs behavior **after** it has been installed into the
-agent's skills directory. The canonical install path is the Ritual CLI
-(`ritual init` copies the skill in); agents without a CLI install it their own
-way — e.g. uploading the skill bundle directly (v0, Lovable). Either way, before
-the skill is in scope the agent has no Ritual-specific instructions; the runtime
-behavior below is identical once it is.
+## Installing Ritual elsewhere
 
-If the user asks how to set up Ritual somewhere else (another machine,
-another repo, a teammate), point them at **`learn.ritual.work/llms.txt`** —
-the canonical machine-readable bootstrap script (plain text, WebFetch-safe;
-also served at `ritual.work/llms.txt`). It walks the
-`npm install -g @ritualai/cli` → `ritual init` → `ritual doctor` →
-restart-agent → verify-MCP → `/ritual build` flow.
+For another machine, repository or teammate, point the user at `learn.ritual.work/llms.txt`: it walks `npm install -g @ritualai/cli`, `ritual init`, `ritual doctor`, restarting the agent and the first `/ritual build`.
