@@ -20,7 +20,7 @@ move it into the id directory (create it, ensure `.ritual/local/` is gitignored 
 path. Refine
 does NOT call `generate_build_brief` and does NOT re-synthesize on the server; it sharpens the
 brief you already have, in place, against real code. It may then sync the grounded result back
-with `save_reconciled_brief` (a save, not a re-synthesis; non-blocking — Step 5.5), but the local
+with `save_brief_version` (a save, not a re-synthesis; non-blocking — Step 5.5), but the local
 file stays the source of truth for `/ritual begin`.
 
 **Refine = grounding a brief you already have.** By the time refine runs, you arrived with a
@@ -138,7 +138,7 @@ grounded brief is saved. To build, run `/ritual begin`…", a verbatim duplicate
 what it had just said.
 
 **Tool-call silence.** Between renders you will call tools (git probes, brief reads,
-`get_build_brief_status`, `save_reconciled_brief`, …). Emit NO text around them — not
+`get_build_brief_status`, `save_brief_version`, …). Emit NO text around them — not
 "Let me check…", not "while I prepare…". A tool call is not a user-facing event. If a
 tool fails and blocks the flow, that failure surfaces INSIDE the next render (or the
 neither-exists stop), never as a standalone commentary line.
@@ -310,7 +310,7 @@ If an exploration id was resolved:
 1. **Confirm the server brief is READY.** Call `get_build_brief_status`. If it is
    not READY (still generating, or none exists), SKIP the sync — print one line ("Server brief
    not ready; kept the grounding local.") and continue to Step 6. Do NOT wait or poll.
-2. **Save the grounded brief back.** Call `save_reconciled_brief` with the
+2. **Save the grounded brief back.** Call `save_brief_version` with the
    exploration id, `content` set to the full grounded local brief, and a short
    `reconciliation_summary` (e.g. "Grounded against `<branch>` @ <HEAD-SHA-short>"). Do NOT pass
    a source review id. The server snapshots the original as an immutable version, saves the
@@ -324,7 +324,7 @@ between flows — "change RB-3 to …", "drop the second phase", "add an anti-go
 non-goals section". Whenever you edit the local `BUILD-BRIEF.md` at the user's request:
 
 1. Make the edit locally, exactly as asked.
-2. Run the same push-back: `get_build_brief_status` gate, then `save_reconciled_brief` with
+2. Run the same push-back: `get_build_brief_status` gate, then `save_brief_version` with
    the full edited content and a `reconciliation_summary` naming the user's change in their
    words (e.g. "User edit: RB-3 now requires soft-delete"). Same non-blocking posture.
 3. Confirm in ONE line that the change is saved — user nouns, no tool names ("Updated and
@@ -366,7 +366,7 @@ Never omit the "What changed" block or the agent debrief.
 - Do NOT run shell commands in the target repo beyond the git probes in Step 1.
 - Do NOT modify any file in the target repo EXCEPT `.ritual/local/build-briefs/{exploration_id}/BUILD-BRIEF.md` (and the one-time legacy migration above), the brief you ground.
 - refine does NOT call `generate_build_brief` and does NOT re-synthesize on the server. The
-  brief already exists on disk; refine sharpens it in place. It MAY call `save_reconciled_brief`
+  brief already exists on disk; refine sharpens it in place. It MAY call `save_brief_version`
   (Step 5.5) to sync the grounded brief back — a save, not a re-synthesis, and non-blocking;
   `/ritual begin` never depends on it.
 - No em-dashes in any output.

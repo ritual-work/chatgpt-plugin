@@ -44,7 +44,7 @@ Fallbacks: `total_recs === 0` → use only the discovery component scaled to 100
 |---|---:|
 | `sources[]` array on the exploration is non-empty (≥ 3 paths) | 25 |
 | ≥ 5 paths (deeper recon) | 15 |
-| `query_knowledge_graph(sources).implementationCount > 0` (prior impls touch overlapping files) | 30 |
+| `get_file_lineage(sources).implementationCount > 0` (prior impls touch overlapping files) | 30 |
 | Decisions logged on overlapping files (knowledge graph `decisions[]` non-empty) | 20 |
 | Deferrals on overlapping files surfaced (knowledge graph `deferrals[]` returned) | 10 |
 
@@ -120,4 +120,4 @@ State tier lookup:
 | 30–55 | Under-specified | Run discovery. |
 | 55–75 | Exploration-safe | Get to recommendations. Don't implement yet. |
 | 75–90 | Recommendation-ready | Generate the build brief, then implement. |
-| 90+ | Implementation-ready | Safe to code. |
+| 90+ | Implementation-ready | The context is complete enough to brief and implement. The score measures the inputs, not the code. |

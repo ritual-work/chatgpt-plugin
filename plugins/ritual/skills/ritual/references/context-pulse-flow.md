@@ -74,7 +74,7 @@ Sub-steps:
 
 1. **Light code recon based on the feature description.** Extract keywords from the description (nouns / verbs / domain terms). Glob for matching paths. Read 3–5 candidate files briefly. Build a candidate `sources[]` array (~3–8 paths).
 
-2. **knowledge graph query for prior context on candidate files.** Call `query_knowledge_graph(workspace_id, sources=[candidate paths])`. Note any prior decisions, open deferrals, or implementations on these files.
+2. **knowledge graph query for prior context on candidate files.** Call `get_file_lineage(workspace_id, sources=[candidate paths])`. Note any prior decisions, open deferrals, or implementations on these files.
 
 3. **Score the mode-B pulse** using the standard 4-dimension formula. Repo Grounding will be the dominant contributor since this is the only dimension that can move pre-exploration. Decision resolution = 0 (no recs/discovery yet). Feature clarity scores against the description text the user gave. Assumption safety = 0 (no anti-goals yet).
 
@@ -224,7 +224,7 @@ Call existing MCP tools:
 - `get_exploration(exploration_id)` — for problem statement + anti-goals + metadata
 - `get_recommendations(exploration_id)` — for status counts (accepted / pending / rejected / draft)
 - `get_discovery_state(exploration_id)` — for question count + answered count
-- `query_knowledge_graph(workspace_id, sources=[paths])` — for repo grounding signals (implementations / decisions / deferrals overlapping the exploration's `sources`)
+- `get_file_lineage(workspace_id, sources=[paths])` — for repo grounding signals (implementations / decisions / deferrals overlapping the exploration's `sources`)
 - `list_knowledge_sources(exploration_id)` — for the count + extraction status of attached non-code knowledge sources (PRDs / TICKETs / TRANSCRIPTs / etc.). Contributes to Repo Grounding per CP3.
 - Agent's own filesystem tools (Glob / Read) — for recon depth signal
 
@@ -309,8 +309,8 @@ End every pulse with one recommended next step + a cheap escape hatch. Anchor th
 1. `get_exploration` (CP2 fallback — problem statement + anti-goals + metadata)
 2. `get_recommendations` (CP2 fallback — rec status counts)
 3. `get_discovery_state` (CP2 fallback — question + answer counts)
-4. `query_knowledge_graph` (CP2 fallback — repo grounding signals)
-5. `check_anti_goals` (CP2 fallback — assumption safety)
+4. `get_file_lineage` (CP2 fallback — repo grounding signals)
+5. `audit_anti_goals` (CP2 fallback — assumption safety)
 6. `list_explorations` (CP1 — resolving names to exploration ids; used in both paths)
 7. Agent filesystem tools (`Glob`, `Read`) — for recon-depth signal in CP2 fallback
 
