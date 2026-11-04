@@ -1,5 +1,5 @@
 <!-- GENERATED from references/build-flow.src.md by the Ritual monorepo internal guard — DO NOT EDIT. -->
-<!-- source-sha: 2d7be8fda1fc2644 -->
+<!-- source-sha: 1ed60b58b757af57 -->
 
 # /ritual build — Recommendations (generated; do not edit)
 
@@ -143,7 +143,7 @@ Reply  edit R{N} <your change>   ·   back (all recommendations)   ·   proceed 
 
 ##### 9.2 — `edit R{N} <ask>`: preview, then apply
 
-This mirrors the Ritual web app's "Revise → Preview Revision → Apply revision" exactly: the change is **previewed before anything persists**.
+Revise → preview → apply: the change is **previewed before anything persists**.
 
 1. Resolve `R{N}` → rec UUID from the walk's ID map.
 2. Call `preview_recommendation_edit({ recommendation_id, instruction: "<the user's ask, verbatim>" })`. This runs an LLM and returns a **transient proposal** — nothing is mutated yet. It carries `id` (the proposal id), `summary` ("what changed"), and `diff[]` of `{ field, before, after }` where `field` is `title`, `description`, or `chain.<idx>`.

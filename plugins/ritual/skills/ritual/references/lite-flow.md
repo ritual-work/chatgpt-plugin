@@ -1,5 +1,5 @@
 <!-- GENERATED from references/build-flow.src.md by the Ritual monorepo internal guard — DO NOT EDIT. -->
-<!-- source-sha: 2d7be8fda1fc2644 -->
+<!-- source-sha: 1ed60b58b757af57 -->
 
 # /ritual lite — fast build (generated; do not edit)
 
@@ -88,8 +88,7 @@ for background discovery (unchosen-options → discovery worktrees). When you se
   the answer** — attach a snippet only when it would help a future reader/agent
   reason about your answer (a key type/contract/call site), never to complete it.
   When you do, `content` is **markdown**: add it as a **fenced code block with a
-  language tag** (minimal lines + a `file/path`, never a whole-file paste — the Ritual web app
-  lifts these into a collapsed "View details" reference and markdown stays
+  language tag** (minimal lines + a `file/path`, never a whole-file paste; markdown stays
   portable to the `.ritual/` projection). A snippet is **illustrative, not a
   verbatim copy** — simplify/elide freely, and **NEVER** include secrets, API
   keys, tokens, credentials, `.env` values, real customer data, or PII (use
@@ -849,8 +848,8 @@ When the Ritual plugin is attached (see *Plugin-attached rendering*), the number
 
 **On `use` (plugin-attached), reconcile the drawer's STAGED EDITS before locking** — the drawer stages two things to the canonical exploration: the sub-problem `selected` set AND, via "Request adjustment," a refined `problemStatement`. The agent is the sole committer, so at `use` it **commits from the canonical state, never from chat memory** — it re-reads, reconciles, then locks. Mirror the discovery on-proceed pattern (§7.3.1b):
 
-1. Call `get_exploration(exploration_id)` and read the canonical `problemStatement` — the drawer's "Request adjustment" (or a the Ritual web app refine) may have changed it **out of band** since you rendered the frame. Call `get_sub_problems(exploration_id)` and read `selected`.
-2. If `selected` is a **strict subset** of the rendered sub-problem set (the user de-selected some in the drawer): filter `considerations[]` to `selected`, then run the SAME §5.1a re-derive — `refine_scope` with `considerations` = `selected`, `previous_problem_statement` = the **canonical `problemStatement` from step 1** (so any drawer/the Ritual web app refinement is the BASIS and is preserved through the re-derive), `change_prompt` = `"Narrow scope to these sub-problems: {selected titles}."` — and surface the one-line approved status `Sub-problems narrowed to {N}.`
+1. Call `get_exploration(exploration_id)` and read the canonical `problemStatement` — the drawer's "Request adjustment" (or an edit from another surface) may have changed it **out of band** since you rendered the frame. Call `get_sub_problems(exploration_id)` and read `selected`.
+2. If `selected` is a **strict subset** of the rendered sub-problem set (the user de-selected some in the drawer): filter `considerations[]` to `selected`, then run the SAME §5.1a re-derive — `refine_scope` with `considerations` = `selected`, `previous_problem_statement` = the **canonical `problemStatement` from step 1** (so any out-of-band refinement is the BASIS and is preserved through the re-derive), `change_prompt` = `"Narrow scope to these sub-problems: {selected titles}."` — and surface the one-line approved status `Sub-problems narrowed to {N}.`
 3. Else if the canonical `problemStatement` **differs from the frame you rendered** (the user refined the statement in the drawer without narrowing): adopt the canonical text as the lock text and surface the one-line approved status `Problem statement updated from your edits.`
 4. Else (`selected` is the full set and the statement is unchanged, or `get_sub_problems` returns `ready:false` — non-plugin path): proceed to Step 6 unchanged.
 
@@ -1121,7 +1120,7 @@ Locking scope: **T2 churn reduction (Q3)**
 
 Call `lock_exploration_scope` with:
 - `exploration_id` — the draft id you held since Step 0.7 (or Step 1).
-- `problem_statement` — the scope the user locked at Step 5. **Plugin-attached: pass the canonical text reconciled at §5.1b** (re-read from the exploration so an out-of-band drawer/the Ritual web app "Request adjustment" is committed), NOT your in-context draft. When no plugin is attached, this is simply the frame the user accepted.
+- `problem_statement` — the scope the user locked at Step 5. **Plugin-attached: pass the canonical text reconciled at §5.1b** (re-read from the exploration so an out-of-band "Request adjustment" is committed), NOT your in-context draft. When no plugin is attached, this is simply the frame the user accepted.
 - `jtbd` — pass the FINAL job ONLY if the user ADJUSTED it at the Step 0.7 Scope-entry gate, so go-LIVE records the correction; otherwise OMIT (the draft already carries the slug confirmed at the gate). The job still drives the build-brief → code-plan → implement → PR deliverable phase across every surface.
 - `additional_context` — the full `codebase_context_packet` from Step 5.7 (omit only if recon was skipped, **and omit when §3.9.5 grounded the draft**: the server keeps the verified problem model the harness posted, and sending a packet here would overwrite it). Persisted on the exploration; the server injects it into discovery-question generation as evidence (the questions cover the important tradeoffs it implies) and uses it as the build-brief recon fallback — so it survives `/ritual resume`.
 - `sources` — the file-path list from Step 5.7.3 (omit when §3.9.5 grounded the draft, for the same reason).
@@ -1241,13 +1240,13 @@ Loop:
 
 If ~10 minutes pass still `generating`, surface it as an anomaly rather than polling on silently.
 
-Don't poll faster than every 10 seconds (matches the Ritual web app's 10s discovery cadence). Follow the global polling rule above: a constant ~10s cadence and a one-line update every ~2 polls (~20s). Polling heartbeats are exempt from the Build rail rule per `references/cli-output-contract.md` § Build progress anchor — does NOT apply to.
+Don't poll faster than every 10 seconds. Follow the global polling rule above: a constant ~10s cadence and a one-line update every ~2 polls (~20s). Polling heartbeats are exempt from the Build rail rule per `references/cli-output-contract.md` § Build progress anchor — does NOT apply to.
 
 ##### 7.3 — Question picking: the suggested-12 landing (default) + the expert walk (on request)
 
 The state contains `matters[]`, each with `id`, `name`, and `questions[]`. Internally these are `matter`s; user-facing copy ALWAYS calls them **Areas**.
 
-**Landing-first.** The default render is NOT the Area walk — it is the **suggested-12 landing**: Ritual's 12 suggested questions across all Areas, listed IN FULL (never truncated), grouped by Area, pre-selected. One word (`proceed`) commits them; `expert` opens the Area-by-Area walk with the 12 already selected (toggle to adjust). The walk MIRRORS the Ritual web app `/discover` picker (Area rail + current Area's questions + Summary before commit) and remains the place to push toward the 15–20 good-coverage range — it's just opt-in now instead of mandatory.
+**Landing-first.** The default render is NOT the Area walk — it is the **suggested-12 landing**: Ritual's 12 suggested questions across all Areas, listed IN FULL (never truncated), grouped by Area, pre-selected. One word (`proceed`) commits them; `expert` opens the Area-by-Area walk with the 12 already selected (toggle to adjust). The walk is an Area rail, the current Area's questions, and a Summary before commit, and remains the place to push toward the 15–20 good-coverage range — it's just opt-in now instead of mandatory.
 
 The two failure modes this contract prevents:
 - **A bare Area index** — the rail (or a "pick an Area" menu) with **no questions under it**. The rail without its current Area's questions is exactly the removed model; always render the questions inline.- **A full dump** — every Area's questions in one message. Only the **current** Area's questions render per turn.
@@ -1461,7 +1460,7 @@ Reply numbers (e.g. `1,4`), `next`, `prev`, or `skip`.
 
 ###### 7.3.3 — Summary (after the last Area, or on `done`) — the review-before-commit gate
 
-Render all picks grouped by Area. This MIRRORS the Ritual web app's Summary tab and is the gate where the user confirms before the run. Use `✓` picked / `—` none / `□` untouched. NEVER strikethrough (renders inconsistently across terminals).
+Render all picks grouped by Area. This is the Summary gate, where the user confirms before the run. Use `✓` picked / `—` none / `□` untouched. NEVER strikethrough (renders inconsistently across terminals).
 
 ```text
 Question picking · Summary                              {T} picked
@@ -1785,7 +1784,7 @@ The *only* difference between the two answerer paths — **local coding agent** 
 
 **Agent-answered path (default):** you already wrote + `submit_all_answers`'d, so there's no agentic run to poll — go straight to the recommendation wait: poll `get_exploration_status(exploration_id).recommendationsStatus` (a constant ~20s cadence, a "still generating recommendations…" line every ~3 polls) until it reads `ready`, then fetch + continue to Step 9. `generating` → keep polling; `empty` → genuine zero-rec terminal; NEVER render the Step 9 landing or call `accept_recommendations` from anything but `ready`; if 10+ min pass still `generating`, surface it as an anomaly. (Skip the `get_discovery_run` polling below — that's the server-fallback path.)
 
-**Server fallback path** (you called `start_discovery_run`): poll `get_discovery_run(run_id)` using `references/async-polling.md`: **a constant ~20s cadence** (matches the Ritual web app's 20s agentic cadence; never escalate), then a fresh status call. Even if the run takes 2+ minutes the cadence stays constant. Agentic runs CAN exceed 5 min for large explorations — keep the same constant cadence and keep polling; if status is still running past ~10 min, surface it as an anomaly rather than escalating the wait.
+**Server fallback path** (you called `start_discovery_run`): poll `get_discovery_run(run_id)` using `references/async-polling.md`: **a constant ~20s cadence** (never escalate), then a fresh status call. Even if the run takes 2+ minutes the cadence stays constant. Agentic runs CAN exceed 5 min for large explorations — keep the same constant cadence and keep polling; if status is still running past ~10 min, surface it as an anomaly rather than escalating the wait.
 
 **On the FIRST poll only** (not every poll), prepend one line that locks the "background execution is default" mental model:
 
@@ -2016,7 +2015,7 @@ Reply  edit R{N} <your change>   ·   back (all recommendations)   ·   proceed 
 
 ##### 9.2 — `edit R{N} <ask>`: preview, then apply
 
-This mirrors the Ritual web app's "Revise → Preview Revision → Apply revision" exactly: the change is **previewed before anything persists**.
+Revise → preview → apply: the change is **previewed before anything persists**.
 
 1. Resolve `R{N}` → rec UUID from the walk's ID map.
 2. Call `preview_recommendation_edit({ recommendation_id, instruction: "<the user's ask, verbatim>" })`. This runs an LLM and returns a **transient proposal** — nothing is mutated yet. It carries `id` (the proposal id), `summary` ("what changed"), and `diff[]` of `{ field, before, after }` where `field` is `title`, `description`, or `chain.<idx>`.

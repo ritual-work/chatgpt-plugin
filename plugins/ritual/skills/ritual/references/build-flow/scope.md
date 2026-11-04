@@ -1,5 +1,5 @@
 <!-- GENERATED from references/build-flow.src.md by the Ritual monorepo internal guard — DO NOT EDIT. -->
-<!-- source-sha: 2d7be8fda1fc2644 -->
+<!-- source-sha: 1ed60b58b757af57 -->
 
 # /ritual build — Scope (generated; do not edit)
 
@@ -299,8 +299,8 @@ When the Ritual plugin is attached (see *Plugin-attached rendering*), the number
 
 **On `use` (plugin-attached), reconcile the drawer's STAGED EDITS before locking** — the drawer stages two things to the canonical exploration: the sub-problem `selected` set AND, via "Request adjustment," a refined `problemStatement`. The agent is the sole committer, so at `use` it **commits from the canonical state, never from chat memory** — it re-reads, reconciles, then locks. Mirror the discovery on-proceed pattern (§7.3.1b):
 
-1. Call `get_exploration(exploration_id)` and read the canonical `problemStatement` — the drawer's "Request adjustment" (or a the Ritual web app refine) may have changed it **out of band** since you rendered the frame. Call `get_sub_problems(exploration_id)` and read `selected`.
-2. If `selected` is a **strict subset** of the rendered sub-problem set (the user de-selected some in the drawer): filter `considerations[]` to `selected`, then run the SAME §5.1a re-derive — `refine_scope` with `considerations` = `selected`, `previous_problem_statement` = the **canonical `problemStatement` from step 1** (so any drawer/the Ritual web app refinement is the BASIS and is preserved through the re-derive), `change_prompt` = `"Narrow scope to these sub-problems: {selected titles}."` — and surface the one-line approved status `Sub-problems narrowed to {N}.`
+1. Call `get_exploration(exploration_id)` and read the canonical `problemStatement` — the drawer's "Request adjustment" (or an edit from another surface) may have changed it **out of band** since you rendered the frame. Call `get_sub_problems(exploration_id)` and read `selected`.
+2. If `selected` is a **strict subset** of the rendered sub-problem set (the user de-selected some in the drawer): filter `considerations[]` to `selected`, then run the SAME §5.1a re-derive — `refine_scope` with `considerations` = `selected`, `previous_problem_statement` = the **canonical `problemStatement` from step 1** (so any out-of-band refinement is the BASIS and is preserved through the re-derive), `change_prompt` = `"Narrow scope to these sub-problems: {selected titles}."` — and surface the one-line approved status `Sub-problems narrowed to {N}.`
 3. Else if the canonical `problemStatement` **differs from the frame you rendered** (the user refined the statement in the drawer without narrowing): adopt the canonical text as the lock text and surface the one-line approved status `Problem statement updated from your edits.`
 4. Else (`selected` is the full set and the statement is unchanged, or `get_sub_problems` returns `ready:false` — non-plugin path): proceed to Step 6 unchanged.
 
@@ -571,7 +571,7 @@ Locking scope: **T2 churn reduction (Q3)**
 
 Call `lock_exploration_scope` with:
 - `exploration_id` — the draft id you held since Step 0.7 (or Step 1).
-- `problem_statement` — the scope the user locked at Step 5. **Plugin-attached: pass the canonical text reconciled at §5.1b** (re-read from the exploration so an out-of-band drawer/the Ritual web app "Request adjustment" is committed), NOT your in-context draft. When no plugin is attached, this is simply the frame the user accepted.
+- `problem_statement` — the scope the user locked at Step 5. **Plugin-attached: pass the canonical text reconciled at §5.1b** (re-read from the exploration so an out-of-band "Request adjustment" is committed), NOT your in-context draft. When no plugin is attached, this is simply the frame the user accepted.
 - `jtbd` — pass the FINAL job ONLY if the user ADJUSTED it at the Step 0.7 Scope-entry gate, so go-LIVE records the correction; otherwise OMIT (the draft already carries the slug confirmed at the gate). The job still drives the build-brief → code-plan → implement → PR deliverable phase across every surface.
 - `additional_context` — the full `codebase_context_packet` from Step 5.7 (omit only if recon was skipped, **and omit when §3.9.5 grounded the draft**: the server keeps the verified problem model the harness posted, and sending a packet here would overwrite it). Persisted on the exploration; the server injects it into discovery-question generation as evidence (the questions cover the important tradeoffs it implies) and uses it as the build-brief recon fallback — so it survives `/ritual resume`.
 - `sources` — the file-path list from Step 5.7.3 (omit when §3.9.5 grounded the draft, for the same reason).

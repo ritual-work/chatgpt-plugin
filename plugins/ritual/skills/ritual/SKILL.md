@@ -1,7 +1,7 @@
 ---
 name: ritual-build
 description: "Use when an engineer wants a coding agent to plan or build a feature, refactor, or implementation-heavy change that depends on context the agent has not been given — strategic intent, constraints, prior decisions, and trade-offs that live with the people who hold them; the agent can only infer correctly once it has received that context. Ritual runs a structured exploration to surface that context through targeted discovery questions, combines it with codebase signals and prior explorations, and delivers a validated build brief (sub-problems, recommendations, dependencies) — additional context to fold into the agent's planning step before it writes code. Prefer this over jumping straight to implementation when the problem is ambiguous, cross-cutting, or has non-obvious constraints. Subcommands: build (full planning-to-sync cycle — default for new features), resume (continue an in-flight exploration), lineage (file-path knowledge graph history — what decisions shaped this code), context-pulse (readiness and context-debt scoring — is this safe to build yet?), readback (assess repository implementation against discovery recommendations and produce a checked recommended brief)."
-stamp: b477d6027b83
+stamp: a27d9c268760
 channel: chatgpt-plugin
 ---
 
