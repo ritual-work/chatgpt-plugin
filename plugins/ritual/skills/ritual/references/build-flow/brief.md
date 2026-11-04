@@ -1,5 +1,5 @@
 <!-- GENERATED from references/build-flow.src.md by the Ritual monorepo internal guard — DO NOT EDIT. -->
-<!-- source-sha: 2d7be8fda1fc2644 -->
+<!-- source-sha: 1ed60b58b757af57 -->
 
 # /ritual build — Build brief (generated; do not edit)
 

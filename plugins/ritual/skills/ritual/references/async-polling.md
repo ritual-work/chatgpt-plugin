@@ -66,8 +66,7 @@ they are not interchangeable. Poll the tool named here, never a proxy for it.
 | Requirement set | `get_requirement_set_status(exploration_id)` | ~5s | `READY` · `FAILED` |
 | Build brief | `get_build_brief_status(exploration_id, icp)` | ~5s | `READY` · `FAILED` |
 
-The cadences match the Ritual web app's, so both surfaces observe the same job at the same
-rate. They describe how often to ASK — not how to wait, which is your host's business
+They describe how often to ASK — not how to wait, which is your host's business
 (§ Pacing above).
 
 `stalled` and `FAILED` are **not** wait-longer states: polling on will never clear them.
